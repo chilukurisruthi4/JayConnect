@@ -1,0 +1,67 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(uuid())
+  adUsername  String   @unique                 // Used to link with Active Directory
+  fullName    String
+  email       String   @unique
+  role        String   @default("student")     // student, faculty, admin
+  bio         String?
+  avatarUrl   String?
+  createdAt   DateTime @default(now())
+
+  // Relationships
+  posts       Post[]
+  events      Event[]
+  resumes     Resume[]
+}
+
+model Post {
+  id          String   @id @default(uuid())
+  type        String                           // update, research, event, job
+  content     String
+  tags        String[]
+  likes       Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  // Relationships
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+}
+
+model Event {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  location    String?
+  eventDate   DateTime
+  createdAt   DateTime @default(now())
+
+  // Relationships
+  organizerId String
+  organizer   User     @relation(fields: [organizerId], references: [id])
+}
+
+model Resume {
+  id          String   @id @default(uuid())
+  data        Json                             // Stores the entire resume builder JSON
+  version     Int      @default(1)
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
