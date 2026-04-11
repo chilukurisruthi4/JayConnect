@@ -1,9 +1,21 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../../components/Navbar';
 
 // Dummy connections network for JayConnect
 const CONNECTIONS = [
+ {
+ id: '0',
+ name: 'JayConnect AI Assistant 💬',
+ title: 'Real-time Generative AI · Platform Support',
+ role: 'AI Agent',
+ initials: 'AI',
+ color: '#1565c0',
+ chat: [
+ { text: 'Hello Sruthi! I am your real-time JayConnect AI Assistant. I can help you draft connection requests, optimize your feed posts, or recommend technical skills for your resume. How can I assist you today?', isSelf: false, time: 'System Active' },
+ ],
+ },
  {
  id: '1',
  name: 'Dr. Emily Chen',
@@ -45,7 +57,7 @@ const CONNECTIONS = [
 
 export default function MessagesPage() {
  const [threads, setThreads] = useState(CONNECTIONS);
- const [activeId, setActiveId] = useState(CONNECTIONS[1].id);
+ const [activeId, setActiveId] = useState(CONNECTIONS[0].id);
  const [text, setText] = useState('');
  const [isTyping, setIsTyping] = useState(false);
  const chatEndRef = useRef(null);
@@ -78,12 +90,29 @@ export default function MessagesPage() {
  setThreads(curr => curr.map(t => {
  if (t.id === activeId) {
  let reply = 'That sounds great! Let\'s connect soon.';
+ 
+ if (t.id === '0') {
+ // Specific AI Agent routing logic
+ if (val.toLowerCase().includes('resume') || val.toLowerCase().includes('ats')) {
+ reply = 'To improve your ATS resume scan, I highly recommend adding specific technical frameworks you used (e.g., Next.js, PostgreSQL). Want me to draft a new bullet point for you?';
+ } else if (val.toLowerCase().includes('hackathon') || val.toLowerCase().includes('project')) {
+ reply = 'That sounds like a great project! I can help you write a post for the Feed to find teammates. Just tell me what technologies you plan to use!';
+ } else if (val.toLowerCase().includes('hi') || val.toLowerCase().includes('hello')) {
+ reply = 'Hello! Ready to optimize your Elmhurst network today?';
+ } else if (val.toLowerCase().includes('prof') || val.toLowerCase().includes('connect')) {
+ reply = 'Connecting with faculty is crucial. When messaging a professor, always highlight a specific piece of their research you admire. Want me to generate an intro template?';
+ } else {
+ reply = 'I processed your request, but as an AI demo, my current skills are focused on Resume ATS, Feed engagement, and connection-building. Try asking me about your resume!';
+ }
+ } else {
+ // Standard user simulation routing
  if (val.toLowerCase().includes('resume') || val.toLowerCase().includes('interview')) {
  reply = 'Absolutely, I\'d love to review that with you.';
  } else if (val.toLowerCase().includes('call') || val.toLowerCase().includes('time') || val.toLowerCase().includes('yes')) {
  reply = 'Does Tuesday at 2 PM work for you?';
  } else if (val.toLowerCase().includes('hackathon')) {
  reply = 'Perfect. Let\'s coordinate on Discord!';
+ }
  }
  return { ...t, chat: [...t.chat, { text: reply, isSelf: false, time: 'Just now' }] };
  }
@@ -170,7 +199,13 @@ export default function MessagesPage() {
  {activeUser.chat.map((msg, i) => {
  const isSelf = msg.isSelf;
  return (
- <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: isSelf ? 'flex-end' : 'flex-start' }}>
+ <motion.div 
+ key={i} 
+ initial={{ opacity: 0, y: 15, scale: 0.95 }}
+ animate={{ opacity: 1, y: 0, scale: 1 }}
+ transition={{ type: "spring", stiffness: 350, damping: 25 }}
+ style={{ display: 'flex', flexDirection: 'column', alignItems: isSelf ? 'flex-end' : 'flex-start' }}
+ >
  <div style={{ 
  maxWidth: '75%', 
  padding: '14px 18px', 
@@ -187,17 +222,25 @@ export default function MessagesPage() {
  <div style={{ fontSize: '0.7rem', color: 'var(--gray-500)', marginTop: '6px', marginRight: isSelf ? '4px' : 0, marginLeft: isSelf ? 0 : '4px' }}>
  {msg.time}
  </div>
- </div>
+ </motion.div>
  );
  })}
 
+ <AnimatePresence>
  {isTyping && (
- <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+ <motion.div 
+ initial={{ opacity: 0, scale: 0.8, y: 10 }} 
+ animate={{ opacity: 1, scale: 1, y: 0 }} 
+ exit={{ opacity: 0, scale: 0.8, y: -10 }}
+ transition={{ type: "spring", stiffness: 400, damping: 30 }}
+ style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}
+ >
  <div style={{ padding: '14px 20px', background: 'rgba(255,255,255,0.05)', borderRadius: '18px 18px 18px 4px', fontSize: '1rem', color: 'var(--gray-400)', letterSpacing: '2px' }}>
  <span className="typing-dot">.</span><span className="typing-dot">.</span><span className="typing-dot">.</span>
  </div>
- </div>
+ </motion.div>
  )}
+ </AnimatePresence>
  
  <div ref={chatEndRef} style={{ float: 'left', clear: 'both' }} />
  </div>

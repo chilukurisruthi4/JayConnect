@@ -8,9 +8,11 @@
     "start": "next start"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@prisma/client": "^7.5.0",
     "docx": "^8.5.0",
     "file-saver": "^2.0.5",
+    "framer-motion": "^12.38.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^2.5.1",
     "next": "latest",
@@ -19,6 +21,7 @@
     "react-dom": "latest"
   },
   "devDependencies": {
-    "prisma": "^7.5.0"
+    "prisma": "^7.5.0",
+    "typescript": "6.0.2"
   }
 }

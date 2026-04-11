@@ -102,6 +102,14 @@ function ResumePaper({ data, ref: paperRef }) {
  </div>
  </div>
 
+ {/* Summary */}
+ {data.summary && (
+ <div style={{ marginBottom: 14 }}>
+ <div style={{ fontSize: '11pt', fontWeight: 'bold', textTransform: 'uppercase', color: theme.headerColor, marginBottom: 6, textAlign: theme.headerAlign, borderBottom: theme.headerBorder === 'none' ? 'none' : theme.headerBorder, paddingBottom: theme.headerBorder === 'none' ? 0 : 4 }}>SUMMARY</div>
+ <p style={{ margin: 0, padding: 0 }}>{data.summary}</p>
+ </div>
+ )}
+
  {/* Education */}
  {data.education.some(e => e.school) && (
  <div style={{ marginBottom: 14 }}>
@@ -153,20 +161,6 @@ function ResumePaper({ data, ref: paperRef }) {
  </div>
  )}
 
- {/* Summary */}
- {data.summary && (
- <div style={{ marginBottom: 14 }}>
- <div style={{ fontSize: '11pt', fontWeight: 'bold', textTransform: 'uppercase', color: theme.headerColor, marginBottom: 6, textAlign: theme.headerAlign, borderBottom: theme.headerBorder === 'none' ? 'none' : theme.headerBorder, paddingBottom: theme.headerBorder === 'none' ? 0 : 4 }}>SUMMARY</div>
- <p style={{ margin: 0, padding: 0 }}>{data.summary}</p>
- </div>
- )}
- 
- {/* JD (ATS) */}
- {data.jobTitle && (
- <div style={{ marginTop: 'auto', paddingTop: 10, borderTop: '1px dashed #eee', opacity: 0.4, textAlign: 'center' }}>
- <span style={{ fontSize: '7pt', color: '#999' }}>Optimized for: {data.jobTitle} {score > 0 && `(ATS Match ${score}%)`}</span>
- </div>
- )}
  </div>
  );
 }
@@ -275,14 +269,6 @@ async function downloadDOCX(data) {
  new Paragraph({ text: data.certifications }),
  ]) : []),
 
- // Job target (ATS note)
- ...(data.jobTitle ? [
- new Paragraph({ text: '' }),
- new Paragraph({
- children: [new TextRun({ text: `Optimized for: ${data.jobTitle}`, size: 16, color: '999999', italics: true })],
- spacing: { before: 240 },
- }),
- ] : []),
  ],
  }],
  });
@@ -305,65 +291,78 @@ function UploadMode({ onSwitch, onOptimize }) {
  const extractedText = file ? "Sruthi Chilukuri, Software Engineer. Experienced in basic programming and project management." : "";
  const ats = calcATS(extractedText, jobDesc);
 
- const handleOptimize = () => {
+ const handleOptimize = async () => {
  setIsOptimizing(true);
- setTimeout(() => {
- const allMissing = ats.missing.map(m => m.charAt(0).toUpperCase() + m.slice(1));
- const t1 = allMissing.slice(0, 3).join(', ') || 'Modern Frameworks';
- const t2 = allMissing.slice(3, 5).join(' and ') || 'Cloud Technologies';
- const b1 = allMissing.slice(5, 7).join(' and ') || 'Scalable Systems';
- const b2 = allMissing.slice(7, 9).join(', ') || 'Agile Methodologies';
+ try {
+  const baseData = {
+   firstName: "Sruthi",
+   lastName: "Chilukuri",
+   email: "chilukurisruthi4@gmail.com",
+   phone: "+1 702-912-8494",
+   location: "Chicago, IL",
+   linkedin: "linkedin.com/in/sruthi-chilukuri-606139213",
+   website: "",
+   title: "",
+   summary: "",
+   education: [
+   { school: 'Elmhurst University, IL', degree: 'Master of Science', field: 'Computer Information Technology', gpa: '3.9/4.0', from: 'Aug 2024', to: 'May 2026', current: false },
+   { school: 'Gayatri Vidya Parishad College, India', degree: 'Bachelor of Technology', field: 'Electronics & Communication Engineering', gpa: '', from: '2018', to: '2022', current: false }
+   ],
+   experience: [
+   {
+   company: 'Elmhurst University, Elmhurst, IL',
+   role: 'Facilities Management Assistant',
+   from: 'July 2025',
+   to: 'Present',
+   current: true,
+   bullets: [
+   `Manage and track facilities service requests using ticketing system ensuring accurate data entry, timely updates, and proper documentation of work orders and maintenance activities`,
+   `Collaborate with campus stakeholders across departments to coordinate facility services and communicate status updates ensuring alignment with institutional operational priorities`,
+   `Maintain organized records and databases for facility operations demonstrating strong attention to detail and organizational skills in managing multiple concurrent requests`,
+   `Provide excellent customer service while handling sensitive information with professionalism; identify process optimization opportunities and implement efficient workflow solutions`
+   ]
+   },
+   {
+   company: 'DXC Technology, Hyderabad, India',
+   role: 'Software Engineer',
+   from: 'June 2022',
+   to: 'June 2024',
+   current: false,
+   bullets: [
+   `Managed enterprise database systems ensuring data integrity, accuracy, and standardization; performed data quality checks and validation ensuring compliance with organizational standards`,
+   `Developed comprehensive reports, dashboards, and analytics using SQL to monitor operational progress, analyze trends, and translate complex data into actionable insights for stakeholders`,
+   `Designed and streamlined data management processes and workflows; implemented project management strategies for major initiatives and generated targeted data extracts and mailing lists for outreach campaigns`,
+   `Partnered with Business Analysts and cross-functional teams to build robust data pipelines, conduct statistical analysis, perform predictive modeling, and prioritize high-impact projects`
+   ]
+   }
+   ],
+   skills: `Database & Analytics: SQL, Database Management, ETL, Data Integration, Data Integrity, Data Analysis\nMicrosoft Office Suite: Excel, Word, PowerPoint, Access\nData Management: CRM Systems, Database Queries, Statistical Analysis, Report Generation, Data Standardization, Predictive Modeling, Pipeline Management\nCore Competencies: Analytical Skills, Critical Thinking, Process Optimization, Organizational Skills, Collaboration`,
+   certifications: '',
+   jobTitle: jobTitle || "Target Role",
+   jobDesc: jobDesc,
+   template: 'classic',
+  };
 
- const optimizedData = {
- firstName: "CHILUKURI",
- lastName: "SRUTHI",
- email: "chilukurisruthi4@gmail.com",
- phone: "+1 702-912-8494",
- location: "Chicago, IL",
- linkedin: "linkedin.com/in/sruthi-chilukuri-606139213",
- website: "",
- title: "",
- summary: "",
- education: [
- { school: 'Elmhurst University, IL', degree: 'Master of Science', field: 'Computer Information Technology', gpa: '3.9/4.0', from: 'Aug 2024', to: 'May 2026', current: false },
- { school: 'Gayatri Vidya Parishad College, India', degree: 'Bachelor of Technology', field: 'Electronics & Communication Engineering', gpa: '', from: '2018', to: '2022', current: false }
- ],
- experience: [
- {
- company: 'Elmhurst University, Elmhurst, IL',
- role: 'Facilities Management Assistant',
- from: 'July 2025',
- to: 'Present',
- current: true,
- bullets: [
- `Manage and track facilities service requests using ticketing system ensuring accurate data entry, timely updates, and proper documentation of work orders and maintenance activities`,
- `Collaborate with campus stakeholders across departments to coordinate facility services and communicate status updates ensuring alignment with institutional operational priorities`,
- `Maintain organized records and databases for facility operations demonstrating strong attention to detail and organizational skills in managing multiple concurrent requests`,
- `Provide excellent customer service while handling sensitive information with professionalism; identify process optimization opportunities and implement efficient workflow solutions${allMissing.length > 0 ? ` leveraging ${allMissing.slice(0, 2).join(' and ')}` : ''}`
- ]
- },
- {
- company: 'DXC Technology, Hyderabad, India',
- role: 'Software Engineer',
- from: 'June 2022',
- to: 'June 2024',
- current: false,
- bullets: [
- `Managed enterprise database systems ensuring data integrity, accuracy, and standardization; performed data quality checks and validation ensuring compliance with organizational standards`,
- `Developed comprehensive reports, dashboards, and analytics using SQL to monitor operational progress, analyze trends, and translate complex data into actionable insights for stakeholders`,
- `Designed and streamlined data management processes and workflows; implemented project management strategies for major initiatives and generated targeted data extracts and mailing lists for outreach campaigns`,
- `Partnered with Business Analysts and cross-functional teams to build robust data pipelines, conduct statistical analysis, perform predictive modeling, and prioritize high-impact projects${allMissing.length > 2 ? ` using ${allMissing.slice(2, 5).join(', ')}` : ''}`
- ]
+  const res = await fetch('/api/resume/optimize', {
+   method: 'POST',
+   headers: { 'Content-Type': 'application/json' },
+   body: JSON.stringify({ baseData, jobDesc, jobTitle })
+  });
+
+  if (!res.ok) {
+    const backup = await res.json();
+    if (backup.error) throw new Error(backup.error);
+    throw new Error("API Route Failed.");
+  }
+  
+  const optimizedData = await res.json();
+  onOptimize(optimizedData);
+ } catch (error) {
+  console.error(error);
+  alert("AI optimization request failed. Check console or GEMINI_API_KEY environment variable. Error: " + error.message);
+ } finally {
+  setIsOptimizing(false);
  }
- ],
- skills: `Database & Analytics: SQL (Structured Query Language), Database Management, ETL (Extract, Transform, Load), Data Integration, Data Integrity, Data Analysis\nMicrosoft Office Suite: Excel (Advanced Formulas, Pivot Tables, Data Analysis, Dashboards), Word, PowerPoint, Access\nData Management: CRM Systems, Database Queries, Statistical Analysis, Report Generation, Data Standardization, Predictive Modeling, Pipeline Management\nCore Competencies: Analytical Skills, Critical Thinking, Data-Driven Decision Making, Process Optimization, Attention to Detail, Organizational Skills, Collaboration, Communication${allMissing.length > 5 ? `, ${allMissing.slice(5, 10).join(', ')}` : ''}`,
- certifications: '',
- jobTitle: jobTitle || "Target Role",
- jobDesc: jobDesc,
- template: 'classic',
- };
- onOptimize(optimizedData);
- }, 1500);
  };
 
  return (

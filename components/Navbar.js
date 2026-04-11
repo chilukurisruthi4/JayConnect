@@ -22,6 +22,7 @@ function useTheme() {
 export default function Navbar({ user = { name: 'Sruthi C.', initials: 'SC' } }) {
  const path = usePathname();
  const [notifOpen, setNotifOpen] = useState(false);
+ const [userMenuOpen, setUserMenuOpen] = useState(false);
  const { theme, toggle } = useTheme();
 
  const links = [
@@ -38,9 +39,10 @@ export default function Navbar({ user = { name: 'Sruthi C.', initials: 'SC' } })
 
  return (
  <nav className="navbar">
- <Link href="/" className="navbar-logo">
- Jay<span>Connect</span>
- </Link>
+        <Link href="/" className="navbar-logo">
+            <div className="logo-icon"></div>
+            Jay<span>Connect</span>
+        </Link>
 
  <div className="navbar-nav">
  {links.map(l => (
@@ -74,7 +76,7 @@ export default function Navbar({ user = { name: 'Sruthi C.', initials: 'SC' } })
  transition: 'all 0.2s ease',
  }}
  >
- {isDark ? 'Light' : 'Dark'}
+ {isDark ? '☀️' : '🌙'}
  </button>
 
  {/* Notifications */}
@@ -95,7 +97,7 @@ export default function Navbar({ user = { name: 'Sruthi C.', initials: 'SC' } })
  position: 'relative'
  }}
  >
- Notifs
+ 🔔
  <span style={{
  position: 'absolute',
  top: 6, right: 6,
@@ -106,8 +108,57 @@ export default function Navbar({ user = { name: 'Sruthi C.', initials: 'SC' } })
  }} />
  </button>
 
- <div className="avatar" title={user.name}>{user.initials}</div>
+ <div 
+ className="avatar" 
+ title={user.name} 
+ onClick={() => { setUserMenuOpen(!userMenuOpen); setNotifOpen(false); }}
+ style={{ cursor: 'pointer' }}
+ >
+ {user.initials}
  </div>
+ </div>
+
+ {/* User Dropdown */}
+ {userMenuOpen && (
+ <div style={{
+ position: 'absolute',
+ top: 74,
+ right: 16,
+ width: 260,
+ background: 'var(--navbar-bg)',
+ backdropFilter: 'blur(30px)',
+ WebkitBackdropFilter: 'blur(30px)',
+ border: '1px solid var(--border-color)',
+ borderRadius: 16,
+ boxShadow: 'var(--shadow-lg)',
+ zIndex: 300,
+ overflow: 'hidden',
+ display: 'flex',
+ flexDirection: 'column'
+ }}>
+ <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)' }}>
+ <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>{user.name}</div>
+ <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>chilukurisruthi4@gmail.com</div>
+ </div>
+ 
+ <div style={{ padding: '8px 0' }}>
+ <Link href="/profile" style={{ display: 'block', padding: '10px 20px', fontSize: '0.85rem', color: 'var(--text-secondary)', textDecoration: 'none' }} onClick={() => setUserMenuOpen(false)}>👤 View Profile</Link>
+ <a href="#" style={{ display: 'block', padding: '10px 20px', fontSize: '0.85rem', color: 'var(--text-secondary)', textDecoration: 'none' }} onClick={(e) => e.preventDefault()}>⚙️ Settings</a>
+ </div>
+
+ <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border-color)', borderBottom: '1px solid var(--border-color)' }}>
+ <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Appearance</div>
+ <div style={{ display: 'flex', gap: 8 }}>
+ <button onClick={() => theme === 'dark' && toggle()} style={{ flex: 1, padding: '8px', borderRadius: 8, background: theme === 'light' ? 'var(--blue-light)' : 'transparent', border: '1px solid var(--border-color)', color: theme === 'light' ? '#fff' : 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>☀️ Light</button>
+ <button onClick={() => theme === 'light' && toggle()} style={{ flex: 1, padding: '8px', borderRadius: 8, background: theme === 'dark' ? 'var(--blue-light)' : 'transparent', border: '1px solid var(--border-color)', color: theme === 'dark' ? '#fff' : 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>🌙 Dark</button>
+ </div>
+ </div>
+
+ <div style={{ padding: '8px 0' }}>
+ <a href="#" style={{ display: 'block', padding: '10px 20px', fontSize: '0.85rem', color: '#ef4444', textDecoration: 'none', fontWeight: 600 }} onClick={(e) => { e.preventDefault(); alert("Sign out logic would trigger here.") }}>Sign Out</a>
+ </div>
+ </div>
+ )}
 
  {notifOpen && (
  <div style={{
@@ -115,7 +166,9 @@ export default function Navbar({ user = { name: 'Sruthi C.', initials: 'SC' } })
  top: 74,
  right: 32,
  width: 320,
- background: 'var(--bg-surface)',
+ background: 'var(--navbar-bg)',
+ backdropFilter: 'blur(30px)',
+ WebkitBackdropFilter: 'blur(30px)',
  border: '1px solid var(--border-color)',
  borderRadius: 16,
  boxShadow: 'var(--shadow-lg)',
@@ -126,9 +179,9 @@ export default function Navbar({ user = { name: 'Sruthi C.', initials: 'SC' } })
  Notifications
  </div>
  {[
- { icon: '', msg: 'Prof. Chen liked your AI Research post', time: '2m ago' },
- { icon: '', msg: 'Alex K. commented: "Love this idea!"', time: '14m ago' },
- { icon: '', msg: 'Hackathon registration opens tomorrow!', time: '1h ago' },
+ { icon: '🤝', msg: 'Prof. Chen liked your AI Research post', time: '2m ago' },
+ { icon: '💬', msg: 'Alex K. commented: "Love this idea!"', time: '14m ago' },
+ { icon: '🚀', msg: 'Hackathon registration opens tomorrow!', time: '1h ago' },
  ].map((n, i) => (
  <div key={i} style={{
  display: 'flex', gap: 12, alignItems: 'flex-start',

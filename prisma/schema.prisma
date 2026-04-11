@@ -10,7 +10,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -27,12 +26,15 @@ model User {
   posts       Post[]
   events      Event[]
   resumes     Resume[]
+  connectionsReq Connection[] @relation("Requester")
+  connectionsRec Connection[] @relation("Requested")
 }
 
 model Post {
   id          String   @id @default(uuid())
-  type        String                           // update, research, event, job
+  type        String                           // idea, project, research, showcase
   content     String
+  imageUrl    String?
   tags        String[]
   likes       Int      @default(0)
   createdAt   DateTime @default(now())
@@ -64,4 +66,19 @@ model Resume {
   // Relationships
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Connection {
+  id          String   @id @default(uuid())
+  status      String   @default("pending") // pending | accepted
+  connectedAt DateTime @default(now())
+
+  // Relationships
+  requesterId String
+  requester   User     @relation("Requester", fields: [requesterId], references: [id])
+
+  requestedId String
+  requested   User     @relation("Requested", fields: [requestedId], references: [id])
+
+  @@unique([requesterId, requestedId])
 }
