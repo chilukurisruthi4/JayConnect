@@ -58,7 +58,7 @@ export default function NetworkPage() {
                type: u.role?.includes('Professor') ? 'Faculty' : 'Student',
                mutuals: Math.floor(Math.random() * 20), // Placeholder mock data
                connected: isConnected,
-               avatar: u.fullName.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase()
+               avatar: (u.displayName || u.adUsername || 'U').split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase()
              };
            });
            
