@@ -154,13 +154,13 @@ export default function FeedPage() {
 
           const formatted = data.posts.map(post => ({
             id: post.id,
-            name: post.author?.fullName || 'User',
-            initials: post.author?.fullName?.split(' ').map(n=>n[0]).join('') || 'U',
+            name: post.author?.displayName || post.author?.adUsername || 'Student Match',
+            initials: (post.author?.displayName || 'U').split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase(),
             color: 'linear-gradient(135deg,#1565c0,#7c3aed)',
-            role: post.author?.role || 'Student',
+            role: post.author?.bio || 'Student · Elmhurst Network',
             time: new Date(post.createdAt).toLocaleDateString(),
-            type: post.type,
-            ...typeMap[post.type],
+            type: 'idea',
+            ...typeMap['idea'],
             content: post.content,
             tags: post.tags || [],
             likes: post.likes || 0,
@@ -300,13 +300,14 @@ export default function FeedPage() {
         showcase: { typeBadge: '🚀 Showcase', typeColor: 'rgba(236,72,153,0.15)', typeTextColor: '#f472b6' },
       };
 
-      if (data.success && data.post) {
+      if (data.success && (data.post || data.project)) {
+        const item = data.post || data.project;
         setPosts(ps => [{
-          id: data.post.id,
-          name: data.post.author?.fullName || 'Sruthi Chilukuri',
-          initials: data.post.author?.fullName?.split(' ').map(n=>n[0]).join('') || 'SC',
+          id: item.id,
+          name: localUser?.name || localUser?.displayName || 'Student',
+          initials: (localUser?.name || localUser?.displayName || 'S').split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase(),
           color: 'linear-gradient(135deg,#1565c0,#7c3aed)',
-          role: data.post.author?.role || 'Student · M.S. Computer Information Technology',
+          role: localUser?.bio || 'Elmhurst University Network',
           time: 'just now',
           type: newPostType,
           ...typeMap[newPostType],
