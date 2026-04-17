@@ -43,9 +43,9 @@ export default function DashboardPage() {
  <div style={{ color: '#4ade80', fontSize: '0.85rem', marginTop: 12, fontWeight: 500 }}>↑ High engagement on Feed</div>
  </div>
  <div className="card" style={{ padding: 24 }}>
- <div style={{ color: 'var(--gray-400)', fontSize: '0.9rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8 }}>Resumes Optimized</div>
+ <div style={{ color: 'var(--gray-400)', fontSize: '0.9rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8 }}>Active Connections</div>
  <div style={{ fontSize: '3rem', fontWeight: 800, lineHeight: 1 }}>1,402</div>
- <div style={{ color: '#60a5fa', fontSize: '0.85rem', marginTop: 12, fontWeight: 500 }}>Using JayConnect AI builder</div>
+ <div style={{ color: '#60a5fa', fontSize: '0.85rem', marginTop: 12, fontWeight: 500 }}>Student-to-student networking</div>
  </div>
  </div>
 

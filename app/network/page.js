@@ -3,6 +3,8 @@ import { useState } from 'react';
 import Navbar from '../../components/Navbar';
 import Link from 'next/link';
 
+import { useEffect } from 'react';
+
 const PEOPLE_DATABASE = [
  { id: 1, name: 'Dr. John Richards', role: 'Professor of Computer Science', type: 'Faculty', mutuals: 12, connected: false, avatar: 'JR' },
  { id: 2, name: 'Alice Chen', role: 'MS in Data Science Candidate', type: 'Student', mutuals: 4, connected: false, avatar: 'AC' },
@@ -19,15 +21,89 @@ export default function NetworkPage() {
  const [aiModal, setAiModal] = useState(null);
  const [aiIntro, setAiIntro] = useState('');
  const [isGenerating, setIsGenerating] = useState(false);
+ const [activeUser, setActiveUser] = useState(null);
+
+ useEffect(() => {
+   async function fetchNetwork() {
+     try {
+       let localUserId = null;
+       const stored = localStorage.getItem('jc-user');
+       if (stored) {
+         const user = JSON.parse(stored);
+         setActiveUser(user);
+         localUserId = user.eNumber || user.id;
+       }
+
+       const [usersRes, connRes] = await Promise.all([
+         fetch('/api/users'),
+         localUserId ? fetch(`/api/connections?userId=${localUserId}`) : Promise.resolve({ json: () => ({ success: false }) })
+       ]);
+
+       const usersData = await usersRes.json();
+       const connData = await connRes.json();
+
+       if (usersData.success && usersData.users.length > 0) {
+         const activeConnections = connData.success ? connData.connections : [];
+         
+         const formattedUsers = usersData.users
+           .filter(u => u.id !== localUserId) // Exclude self
+           .map(u => {
+             const isConnected = activeConnections.some(c => 
+               (c.followerId === u.id || c.followingId === u.id)
+             );
+             return {
+               id: u.id,
+               name: u.displayName || u.adUsername || 'Student',
+               role: u.role || 'Student',
+               type: u.role?.includes('Professor') ? 'Faculty' : 'Student',
+               mutuals: Math.floor(Math.random() * 20), // Placeholder mock data
+               connected: isConnected,
+               avatar: u.fullName.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase()
+             };
+           });
+           
+         if (formattedUsers.length > 0) {
+           setPeople(formattedUsers);
+         }
+       }
+     } catch (e) {
+       console.error("Network sync failed", e);
+     }
+   }
+   if (typeof window !== 'undefined') fetchNetwork();
+ }, []);
 
  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3500); };
 
- const handleConnect = (id) => {
- setPeople(prev => prev.map(p => {
- if (p.id !== id) return p;
- if (!p.connected) showToast(` Connection request sent to ${p.name}!`);
- return { ...p, connected: !p.connected };
- }));
+ const handleConnect = async (id) => {
+   if (!activeUser) {
+     showToast('Please sign in to connect with peers!');
+     return;
+   }
+   
+   const person = people.find(p => p.id === id);
+   const isConnecting = !person.connected;
+
+   setPeople(prev => prev.map(p => {
+     if (p.id !== id) return p;
+     if (isConnecting) showToast(`Connection request sent to ${p.name}!`);
+     return { ...p, connected: !p.connected };
+   }));
+
+   try {
+     await fetch('/api/connections', {
+       method: 'POST',
+       headers: { 'Content-Type': 'application/json' },
+       body: JSON.stringify({
+         followerId: activeUser.id,
+         followingId: id,
+         action: isConnecting ? 'connect' : 'disconnect'
+       })
+     });
+   } catch (e) {
+     console.error('Failed to update connection', e);
+     showToast('Failed to sync network change.');
+   }
  };
 
  const searchLower = search.toLowerCase();

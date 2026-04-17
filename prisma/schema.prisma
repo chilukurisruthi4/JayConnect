@@ -1,10 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../app/generated/prisma"
 }
 
@@ -13,72 +8,97 @@ datasource db {
 }
 
 model User {
-  id          String   @id @default(uuid())
-  adUsername  String   @unique                 // Used to link with Active Directory
-  fullName    String
-  email       String   @unique
-  role        String   @default("student")     // student, faculty, admin
-  bio         String?
-  avatarUrl   String?
-  createdAt   DateTime @default(now())
-
-  // Relationships
-  posts       Post[]
-  events      Event[]
-  resumes     Resume[]
-  connectionsReq Connection[] @relation("Requester")
-  connectionsRec Connection[] @relation("Requested")
+  id            String       @id @default(uuid())
+  email         String       @unique
+  adUsername    String?      @unique
+  displayName   String?
+  avatarUrl     String?
+  bio           String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  
+  posts         Post[]
+  comments      Comment[]
+  likes         Like[]
+  sentMessages  Message[]    @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
+  connections   Connection[] @relation("UserConnections")
+  connectedBy   Connection[] @relation("ConnectedToUser")
+  projects      Project[]
 }
 
 model Post {
-  id          String   @id @default(uuid())
-  type        String                           // idea, project, research, showcase
+  id          String    @id @default(uuid())
+  title       String
   content     String
   imageUrl    String?
-  tags        String[]
-  likes       Int      @default(0)
-  createdAt   DateTime @default(now())
-
-  // Relationships
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   authorId    String
+  
+  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments    Comment[]
+  likes       Like[]
+}
+
+model Comment {
+  id          String   @id @default(uuid())
+  content     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  postId      String
+  authorId    String
+  
+  post        Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
 }
 
-model Event {
+model Like {
   id          String   @id @default(uuid())
-  title       String
-  description String?
-  location    String?
-  eventDate   DateTime
   createdAt   DateTime @default(now())
-
-  // Relationships
-  organizerId String
-  organizer   User     @relation(fields: [organizerId], references: [id])
-}
-
-model Resume {
-  id          String   @id @default(uuid())
-  data        Json                             // Stores the entire resume builder JSON
-  version     Int      @default(1)
-  updatedAt   DateTime @updatedAt
-
-  // Relationships
+  postId      String
   userId      String
+  
+  post        Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([postId, userId])
 }
 
 model Connection {
+  id            String   @id @default(uuid())
+  followerId    String
+  followingId   String
+  createdAt     DateTime @default(now())
+  
+  follower      User     @relation("UserConnections", fields: [followerId], references: [id], onDelete: Cascade)
+  following     User     @relation("ConnectedToUser", fields: [followingId], references: [id], onDelete: Cascade)
+  
+  @@unique([followerId, followingId])
+}
+
+model Project {
   id          String   @id @default(uuid())
-  status      String   @default("pending") // pending | accepted
-  connectedAt DateTime @default(now())
+  title       String
+  description String
+  imageUrl    String?
+  githubUrl   String?
+  liveUrl     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userId      String
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
 
-  // Relationships
-  requesterId String
-  requester   User     @relation("Requester", fields: [requesterId], references: [id])
-
-  requestedId String
-  requested   User     @relation("Requested", fields: [requestedId], references: [id])
-
-  @@unique([requesterId, requestedId])
+model Message {
+  id          String   @id @default(uuid())
+  content     String
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  senderId    String
+  receiverId  String
+  
+  sender      User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver    User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
 }

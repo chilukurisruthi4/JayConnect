@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 function useTheme() {
  const [theme, setTheme] = useState('dark');
@@ -19,18 +19,37 @@ function useTheme() {
  return { theme, toggle };
 }
 
-export default function Navbar({ user = { name: 'Sruthi C.', initials: 'SC' } }) {
+export default function Navbar({ user: initialUser }) {
  const path = usePathname();
+ const router = useRouter();
  const [notifOpen, setNotifOpen] = useState(false);
  const [userMenuOpen, setUserMenuOpen] = useState(false);
  const { theme, toggle } = useTheme();
+ const [user, setUser] = useState(initialUser || { name: 'Sruthi C.', initials: 'SC', email: 'chilukurisruthi4@gmail.com' });
+
+ useEffect(() => {
+   try {
+     const stored = localStorage.getItem('jc-user');
+     if (stored) {
+       const parsed = JSON.parse(stored);
+       const initials = parsed.fullName?.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase() || 'U';
+       setUser({ ...parsed, name: parsed.fullName, initials });
+     }
+   } catch(e) {}
+ }, []);
+
+ const handleLogout = (e) => {
+   e.preventDefault();
+   localStorage.removeItem('jc-user');
+   setUserMenuOpen(false);
+   router.push('/login');
+ };
 
  const links = [
  { href: '/feed', label: 'Feed', icon: '' },
  { href: '/network', label: 'Network', icon: '' },
  { href: '/events', label: 'Events', icon: '' },
  { href: '/messages', label: 'Messages', icon: '' },
- { href: '/resume', label: 'Resume', icon: '' },
  { href: '/profile', label: 'Profile', icon: '' },
  { href: '/dashboard', label: 'Admin', icon: '' },
  ];
@@ -39,9 +58,9 @@ export default function Navbar({ user = { name: 'Sruthi C.', initials: 'SC' } })
 
  return (
  <nav className="navbar">
-        <Link href="/" className="navbar-logo">
-            <div className="logo-icon"></div>
-            Jay<span>Connect</span>
+        <Link href="/" className="navbar-logo" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <img src="/logo.png" alt="JayConnect Logo" style={{ width: '38px', height: '38px', borderRadius: '8px', objectFit: 'cover', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }} />
+            <div style={{ display: 'flex', alignItems: 'center' }}>Jay<span>Connect</span></div>
         </Link>
 
  <div className="navbar-nav">
@@ -155,7 +174,7 @@ export default function Navbar({ user = { name: 'Sruthi C.', initials: 'SC' } })
  </div>
 
  <div style={{ padding: '8px 0' }}>
- <a href="#" style={{ display: 'block', padding: '10px 20px', fontSize: '0.85rem', color: '#ef4444', textDecoration: 'none', fontWeight: 600 }} onClick={(e) => { e.preventDefault(); alert("Sign out logic would trigger here.") }}>Sign Out</a>
+ <a href="#" style={{ display: 'block', padding: '10px 20px', fontSize: '0.85rem', color: '#ef4444', textDecoration: 'none', fontWeight: 600 }} onClick={handleLogout}>Sign Out</a>
  </div>
  </div>
  )}

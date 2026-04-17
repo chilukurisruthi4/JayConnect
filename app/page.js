@@ -15,13 +15,13 @@
  return (
  <div className="page-shell">
  <nav className="navbar">
- <div className="navbar-logo">
- <div className="logo-icon"></div>
- Jay<span>Connect</span>
+ <div className="navbar-logo" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+ <img src="/logo.png" alt="JayConnect Logo" style={{ width: '38px', height: '38px', borderRadius: '8px', objectFit: 'cover', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }} />
+ <div style={{ display: 'flex', alignItems: 'center' }}>Jay<span>Connect</span></div>
  </div>
  <div className="navbar-right">
- <Link href={`/feed?majors=${majorsSelected.join(',')}`} className="btn-ghost">Sign In</Link>
- <Link href={`/feed?majors=${majorsSelected.join(',')}`} className="btn-gold">Join Now</Link>
+ <Link href={`/login`} className="btn-ghost">Sign In</Link>
+ <Link href={`/login`} className="btn-gold">Join Now</Link>
  </div>
  </nav>
 

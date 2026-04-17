@@ -135,7 +135,104 @@ export default function EventsPage() {
  const [toast, setToast] = useState(null);
  const [isCreating, setIsCreating] = useState(false);
  const [newEvent, setNewEvent] = useState({ title: '', type: 'networking', date: '', location: '', desc: '' });
+ const [activeUser, setActiveUser] = useState(null);
  const countdown = useCountdown('2026-04-12T00:00:00');
+
+ useEffect(() => {
+   const stored = localStorage.getItem('jc-user');
+   if (stored) setActiveUser(JSON.parse(stored));
+
+   async function fetchEvents() {
+     try {
+       const res = await fetch('/api/events');
+       const data = await res.json();
+       if (data.success && data.events.length > 0) {
+         const eventTypeMap = {
+           hackathon: { typeBadge: ' Hackathon', typeColor: 'rgba(139,92,246,0.25)', typeText: '#a78bfa', emoji: '' },
+           workshop: { typeBadge: ' Workshop', typeColor: 'rgba(21,101,192,0.25)', typeText: '#60a5fa', emoji: '' },
+           panel: { typeBadge: '️ Panel', typeColor: 'rgba(6,95,70,0.3)', typeText: '#34d399', emoji: '️' },
+           networking: { typeBadge: ' Networking', typeColor: 'rgba(245,166,35,0.2)', typeText: '#fbbf24', emoji: '️' },
+         };
+         
+         const formattedEvents = data.events.map(ev => ({
+           id: ev.id,
+           banner: 'linear-gradient(135deg,#1d4ed8,#1565c0)',
+           title: ev.title,
+           date: new Date(ev.eventDate).toLocaleString(),
+           type: 'workshop', // Fallback type
+           ...eventTypeMap['workshop'],
+           desc: ev.description || 'Join us for this upcoming event!',
+           location: ev.location,
+           attendees: Math.floor(Math.random() * 50) + 1,
+           avaColors: ['#1d4ed8', '#0891b2'],
+           registered: false,
+           sponsored: ev.organizer?.fullName || 'Event Organizer'
+         }));
+         // Prepend to static events or replace, we'll prepend for showcase
+         setEvents(prev => [...formattedEvents, ...prev]);
+       }
+     } catch(e) {
+       console.error(e);
+     }
+   }
+   if (typeof window !== 'undefined') fetchEvents();
+ }, []);
+
+ const handleCreateEvent = async (e) => {
+   e.preventDefault();
+   if (!newEvent.title.trim()) return;
+
+   if (!activeUser) {
+     showToast('Please login to create an event!');
+     return;
+   }
+
+   const eventTypeMap = {
+     hackathon: { typeBadge: ' Hackathon', typeColor: 'rgba(139,92,246,0.25)', typeText: '#a78bfa', emoji: '' },
+     workshop: { typeBadge: ' Workshop', typeColor: 'rgba(21,101,192,0.25)', typeText: '#60a5fa', emoji: '' },
+     panel: { typeBadge: '️ Panel', typeColor: 'rgba(6,95,70,0.3)', typeText: '#34d399', emoji: '️' },
+     networking: { typeBadge: ' Networking', typeColor: 'rgba(245,166,35,0.2)', typeText: '#fbbf24', emoji: '️' },
+   };
+
+   try {
+     const res = await fetch('/api/events', {
+       method: 'POST',
+       headers: { 'Content-Type': 'application/json' },
+       body: JSON.stringify({
+         title: newEvent.title,
+         description: newEvent.desc,
+         location: newEvent.location || 'TBA',
+         eventDate: newEvent.date || new Date().toISOString(),
+         organizerId: activeUser.eNumber || activeUser.id
+       })
+     });
+     const data = await res.json();
+     if (data.success) {
+       const backendEvent = data.event;
+       const created = {
+         id: backendEvent.id,
+         banner: 'linear-gradient(135deg,#db2777,#9333ea)',
+         title: backendEvent.title,
+         date: new Date(backendEvent.eventDate).toLocaleString(),
+         type: newEvent.type,
+         ...eventTypeMap[newEvent.type],
+         desc: backendEvent.description,
+         location: backendEvent.location,
+         attendees: 1,
+         avaColors: ['#db2777'],
+         registered: true,
+         sponsored: activeUser.fullName,
+       };
+
+       setEvents([created, ...events]);
+       setIsCreating(false);
+       setNewEvent({ title: '', date: '', location: '', desc: '', type: 'networking' });
+       showToast(' Event Created Successfully!');
+     }
+   } catch(err) {
+     showToast('Failed to connect to the database.');
+   }
+ };
 
  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 

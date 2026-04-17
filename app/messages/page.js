@@ -3,64 +3,73 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../../components/Navbar';
 
-// Dummy connections network for JayConnect
-const CONNECTIONS = [
- {
- id: '0',
- name: 'JayConnect AI Assistant 💬',
- title: 'Real-time Generative AI · Platform Support',
- role: 'AI Agent',
- initials: 'AI',
- color: '#1565c0',
- chat: [
- { text: 'Hello Sruthi! I am your real-time JayConnect AI Assistant. I can help you draft connection requests, optimize your feed posts, or recommend technical skills for your resume. How can I assist you today?', isSelf: false, time: 'System Active' },
- ],
- },
- {
- id: '1',
- name: 'Dr. Emily Chen',
- title: 'Professor of Computer Science · Elmhurst Univ',
- role: 'Faculty',
- initials: 'EC',
- color: '#8b5cf6',
- chat: [
- { text: 'Hi Sruthi, saw your recent project on the Feed. Very impressive optimization.', isSelf: false, time: 'Mon 10:30 AM' },
- { text: 'Thank you Professor! I used the techniques we covered in Database Management.', isSelf: true, time: 'Mon 11:15 AM' },
- ],
- },
- {
- id: '2',
- name: 'Marcus Johnson',
- title: 'Senior Career Advisor · Elmhurst Career Services',
- role: 'Advisor',
- initials: 'MJ',
- color: '#10b981',
- chat: [
- { text: 'Hi Sruthi! I was reviewing your ATS-optimized resume uploaded to JayConnect, and the new format looks fantastic.', isSelf: false, time: 'Yesterday 2:10 PM' },
- { text: 'Are you open to a quick call next week to discuss strategies for the upcoming Elmhurst Spring Career Fair?', isSelf: false, time: 'Yesterday 2:12 PM' },
- ],
- },
- {
- id: '3',
- name: 'Alex Rivera',
- title: 'Software Engineer · Alumni',
- role: 'Alumni',
- initials: 'AR',
- color: '#f59e0b',
- chat: [
- { text: 'Hey wait, are you going to the April Hackathon?', isSelf: false, time: '9:40 AM' },
- { text: 'Yes! I just registered actually.', isSelf: true, time: '9:45 AM' },
- { text: 'Awesome, want to team up?', isSelf: false, time: '10:00 AM' },
- ],
- }
-];
-
 export default function MessagesPage() {
- const [threads, setThreads] = useState(CONNECTIONS);
- const [activeId, setActiveId] = useState(CONNECTIONS[0].id);
+ const [threads, setThreads] = useState([]);
+ const [activeId, setActiveId] = useState(null);
  const [text, setText] = useState('');
  const [isTyping, setIsTyping] = useState(false);
+ const [localUser, setLocalUser] = useState(null);
  const chatEndRef = useRef(null);
+
+ useEffect(() => {
+   const stored = localStorage.getItem('jc-user');
+   let activeU = null;
+   if (stored) {
+     activeU = JSON.parse(stored);
+     setLocalUser(activeU);
+   }
+
+   async function fetchMessages() {
+     try {
+       // Fetch all users to create the left sidebar threads
+       const usersRes = await fetch('/api/users');
+       const usersData = await usersRes.json();
+       
+       let activeMessages = [];
+       if (activeU?.id) {
+         const msgRes = await fetch(`/api/messages?userId=${activeU.id}`);
+         const msgData = await msgRes.json();
+         if (msgData.success) activeMessages = msgData.messages;
+       }
+
+       if (usersData.success) {
+         const builtThreads = usersData.users
+           .filter(u => u.id !== activeU?.id)
+           .map(u => {
+             const userMsgs = activeMessages.filter(m => m.senderId === u.id || m.receiverId === u.id);
+             return {
+               id: u.id,
+               name: u.displayName || u.adUsername || 'Student',
+               title: u.bio || 'Elmhurst University Network',
+               initials: (u.displayName || u.adUsername || 'U').substring(0, 2).toUpperCase(),
+               color: '#1565c0',
+               chat: userMsgs.map(m => ({
+                 text: m.content,
+                 isSelf: m.senderId === activeU?.id,
+                 time: new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+               }))
+             };
+           });
+           
+         const AI_AGENT = {
+           id: '0',
+           name: 'JayConnect AI Assistant 💬',
+           title: 'Real-time Generative AI · Platform Support',
+           role: 'AI Agent',
+           initials: 'AI',
+           color: '#10b981',
+           chat: [
+             { text: 'Hello! I am your JayConnect AI Assistant. I can help you draft connection requests or optimize your feed posts. Try asking me about your network!', isSelf: false, time: 'Now' },
+           ],
+         };
+
+         setThreads([AI_AGENT, ...builtThreads]);
+         if (!activeId) setActiveId('0');
+       }
+     } catch(e) {}
+   }
+   if (typeof window !== 'undefined') fetchMessages();
+ }, []);
 
  const activeUser = threads.find(t => t.id === activeId);
 
@@ -68,57 +77,55 @@ export default function MessagesPage() {
  chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
  }, [activeId, threads, isTyping]);
 
- const handleSend = (e) => {
+ const handleSend = async (e) => {
  e.preventDefault();
- if (!text.trim()) return;
+ if (!text.trim() || !localUser || !activeId) return;
 
  const val = text;
  setText('');
 
- // 1) Append user message
+ // Optimistic Update
  setThreads(curr => curr.map(t => {
  if (t.id === activeId) {
- return { ...t, chat: [...t.chat, { text: val, isSelf: true, time: 'Just now' }] };
+ return { ...t, chat: [...t.chat, { text: val, isSelf: true, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }] };
  }
  return t;
  }));
 
- // 2) Simulate reply
- setIsTyping(true);
- setTimeout(() => {
- setIsTyping(false);
- setThreads(curr => curr.map(t => {
- if (t.id === activeId) {
- let reply = 'That sounds great! Let\'s connect soon.';
- 
- if (t.id === '0') {
- // Specific AI Agent routing logic
- if (val.toLowerCase().includes('resume') || val.toLowerCase().includes('ats')) {
- reply = 'To improve your ATS resume scan, I highly recommend adding specific technical frameworks you used (e.g., Next.js, PostgreSQL). Want me to draft a new bullet point for you?';
- } else if (val.toLowerCase().includes('hackathon') || val.toLowerCase().includes('project')) {
- reply = 'That sounds like a great project! I can help you write a post for the Feed to find teammates. Just tell me what technologies you plan to use!';
- } else if (val.toLowerCase().includes('hi') || val.toLowerCase().includes('hello')) {
- reply = 'Hello! Ready to optimize your Elmhurst network today?';
- } else if (val.toLowerCase().includes('prof') || val.toLowerCase().includes('connect')) {
- reply = 'Connecting with faculty is crucial. When messaging a professor, always highlight a specific piece of their research you admire. Want me to generate an intro template?';
- } else {
- reply = 'I processed your request, but as an AI demo, my current skills are focused on Resume ATS, Feed engagement, and connection-building. Try asking me about your resume!';
+ if (activeId === '0') {
+   // AI Agent routing logic
+   setIsTyping(true);
+   setTimeout(() => {
+     let reply = 'I processed your request! Since I am an AI demo, try asking me about finding projects or connecting with professors.';
+     if (val.toLowerCase().includes('project') || val.toLowerCase().includes('hackathon')) {
+       reply = 'That sounds like a great project! You should post about it on the Feed to find teammates.';
+     } else if (val.toLowerCase().includes('prof') || val.toLowerCase().includes('connect')) {
+       reply = 'Connecting with faculty is crucial. When messaging a professor, always highlight a specific piece of their research you admire.';
+     }
+     setIsTyping(false);
+     setThreads(curr => curr.map(t => {
+       if (t.id === '0') {
+         return { ...t, chat: [...t.chat, { text: reply, isSelf: false, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }] };
+       }
+       return t;
+     }));
+   }, 1500);
+   return;
  }
- } else {
- // Standard user simulation routing
- if (val.toLowerCase().includes('resume') || val.toLowerCase().includes('interview')) {
- reply = 'Absolutely, I\'d love to review that with you.';
- } else if (val.toLowerCase().includes('call') || val.toLowerCase().includes('time') || val.toLowerCase().includes('yes')) {
- reply = 'Does Tuesday at 2 PM work for you?';
- } else if (val.toLowerCase().includes('hackathon')) {
- reply = 'Perfect. Let\'s coordinate on Discord!';
+
+ try {
+   await fetch('/api/messages', {
+     method: 'POST',
+     headers: { 'Content-Type': 'application/json' },
+     body: JSON.stringify({
+       senderId: localUser.id,
+       receiverId: activeId,
+       content: val
+     })
+   });
+ } catch (err) {
+   console.error('Failed to post message', err);
  }
- }
- return { ...t, chat: [...t.chat, { text: reply, isSelf: false, time: 'Just now' }] };
- }
- return t;
- }));
- }, 1500 + Math.random() * 1000);
  };
 
  return (

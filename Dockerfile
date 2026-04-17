@@ -11,6 +11,9 @@ RUN npm ci
 
 COPY . .
 
+# Generate Prisma engine module natively
+RUN npx prisma generate
+
 # Build Next.js
 RUN npm run build
 
@@ -29,9 +32,11 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/package.json ./package.json
 
 # Automatically leverage output traces to reduce image size
-# https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# IMPORTANT: Copy custom Prisma generative layout explicitly ignoring auto-trace removals
+COPY --from=builder --chown=nextjs:nodejs /app/app/generated/prisma ./app/generated/prisma
 
 USER nextjs
 

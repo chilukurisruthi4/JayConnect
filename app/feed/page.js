@@ -127,28 +127,54 @@ export default function FeedPage() {
  const [posts, setPosts] = useState(INITIAL_POSTS);
  const [activeFilter, setActiveFilter] = useState('All');
 
- useEffect(() => {
-   if (typeof window !== 'undefined') {
-     const params = new URLSearchParams(window.location.search);
-     const majorsParam = params.get('majors') || params.get('major');
-     if (majorsParam) {
-       const selected = majorsParam.split(',');
-       const filtered = INITIAL_POSTS.filter(p => 
-         selected.some(major => 
-           p.role.includes(major) || 
-           p.tags.some(t => t.includes(major)) ||
-           (major === 'CIT' && p.role.includes('Computer')) ||
-           (major === 'DSA' && p.role.includes('Data')) ||
-           (major === 'MPM' && p.role.includes('Project')) ||
-           (major === 'MBA' && p.role.includes('MBA'))
-         )
-       );
-       if (filtered.length > 0) {
-         setPosts(filtered);
-       }
-     }
-   }
- }, []);
+  useEffect(() => {
+    async function fetchPosts() {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const majorsParam = params.get('majors') || params.get('major');
+        
+        const url = majorsParam ? `/api/posts?majors=${encodeURIComponent(majorsParam)}` : '/api/posts';
+        const res = await fetch(url);
+        const data = await res.json();
+        
+        if (data.success && data.posts && data.posts.length > 0) {
+          const typeMap = {
+            idea: { typeBadge: ' Idea', typeColor: 'rgba(245,166,35,0.15)', typeTextColor: '#fbbf24' },
+            project: { typeBadge: ' Project', typeColor: 'rgba(139,92,246,0.2)', typeTextColor: '#a78bfa' },
+            research: { typeBadge: ' Research', typeColor: 'rgba(6,95,70,0.3)', typeTextColor: '#34d399' },
+            showcase: { typeBadge: '🚀 Showcase', typeColor: 'rgba(236,72,153,0.15)', typeTextColor: '#f472b6' },
+          };
+
+          const formatted = data.posts.map(post => ({
+            id: post.id,
+            name: post.author?.fullName || 'User',
+            initials: post.author?.fullName?.split(' ').map(n=>n[0]).join('') || 'U',
+            color: 'linear-gradient(135deg,#1565c0,#7c3aed)',
+            role: post.author?.role || 'Student',
+            time: new Date(post.createdAt).toLocaleDateString(),
+            type: post.type,
+            ...typeMap[post.type],
+            content: post.content,
+            tags: post.tags || [],
+            likes: post.likes || 0,
+            comments: post._count?.comments || 0,
+            interested: 0,
+            isLiked: false,
+            isInterested: false,
+          }));
+          setPosts(formatted);
+        } else {
+            // Keep INITIAL_POSTS if no actual mock DB data returns
+        }
+      } catch (err) {
+        console.error("Failed to load DB posts:", err);
+      }
+    }
+    
+    if (typeof window !== 'undefined') {
+      fetchPosts();
+    }
+  }, []);
  const [newPost, setNewPost] = useState('');
  const [newPostType, setNewPostType] = useState('idea');
  const [isPublishing, setIsPublishing] = useState(false);
@@ -235,45 +261,59 @@ export default function FeedPage() {
  }));
  };
 
- // ==========================================
- // DATABASE INTEGRATION POINT (VM-4)
- // ==========================================
- // When the Azure PostgreSQL server is live, this function will format the 
- // new post and send a POST request to an API route (e.g., /api/posts), 
- // which will run: `await prisma.post.create({ data: ... })`
- const handlePost = () => {
- if (!newPost.trim()) return;
- setIsPublishing(true);
+  const handlePost = async () => {
+    if (!newPost.trim()) return;
+    setIsPublishing(true);
 
- // Simulate network delay to database
- setTimeout(() => {
- const typeMap = {
- idea: { typeBadge: ' Idea', typeColor: 'rgba(245,166,35,0.15)', typeTextColor: '#fbbf24' },
- project: { typeBadge: ' Project', typeColor: 'rgba(139,92,246,0.2)', typeTextColor: '#a78bfa' },
- research: { typeBadge: ' Research', typeColor: 'rgba(6,95,70,0.3)', typeTextColor: '#34d399' },
- showcase: { typeBadge: '🚀 Showcase', typeColor: 'rgba(236,72,153,0.15)', typeTextColor: '#f472b6' },
- };
- setPosts(ps => [{
- id: Date.now(),
- name: 'Sruthi Chilukuri',
- initials: 'SC',
- color: 'linear-gradient(135deg,#1565c0,#7c3aed)',
- role: 'Student · Computer Science',
- time: 'just now',
- type: newPostType,
- ...typeMap[newPostType],
- content: newPost,
- image: imagePreview,
- tags: [],
- likes: 0, comments: 0, interested: 0,
- isLiked: false, isInterested: false, myReaction: null,
- }, ...ps]);
- setNewPost('');
- setImagePreview(null);
- setIsPublishing(false);
- showToast(' Post securely saved to Database and published!');
- }, 800); // Simulated DB latency
- };
+    try {
+      const isProjectForm = newPostType === 'project';
+      const endpoint = isProjectForm ? '/api/projects' : '/api/posts';
+      const payload = isProjectForm 
+         ? { title: 'Collaboration Blueprint', description: newPost }
+         : { content: newPost, title: 'Feed Update' };
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      
+      const data = await res.json();
+      
+      const typeMap = {
+        idea: { typeBadge: ' Idea', typeColor: 'rgba(245,166,35,0.15)', typeTextColor: '#fbbf24' },
+        project: { typeBadge: ' Project', typeColor: 'rgba(139,92,246,0.2)', typeTextColor: '#a78bfa' },
+        research: { typeBadge: ' Research', typeColor: 'rgba(6,95,70,0.3)', typeTextColor: '#34d399' },
+        showcase: { typeBadge: '🚀 Showcase', typeColor: 'rgba(236,72,153,0.15)', typeTextColor: '#f472b6' },
+      };
+
+      if (data.success && data.post) {
+        setPosts(ps => [{
+          id: data.post.id,
+          name: data.post.author?.fullName || 'Sruthi Chilukuri',
+          initials: data.post.author?.fullName?.split(' ').map(n=>n[0]).join('') || 'SC',
+          color: 'linear-gradient(135deg,#1565c0,#7c3aed)',
+          role: data.post.author?.role || 'Student · M.S. Computer Information Technology',
+          time: 'just now',
+          type: newPostType,
+          ...typeMap[newPostType],
+          content: newPost,
+          image: imagePreview,
+          tags: [],
+          likes: 0, comments: 0, interested: 0,
+          isLiked: false, isInterested: false, myReaction: null,
+        }, ...ps]);
+      }
+    } catch (e) {
+      console.error(e);
+      showToast('Error publishing post');
+    }
+
+    setNewPost('');
+    setImagePreview(null);
+    setIsPublishing(false);
+    showToast('Post securely saved to Database and published!');
+  };
 
  const filtered = activeFilter === 'All'
  ? posts

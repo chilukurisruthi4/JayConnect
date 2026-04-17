@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Navbar from '../../components/Navbar';
 import Link from 'next/link';
@@ -17,7 +17,6 @@ const CERTS = [
 ];
 
 const ACTIVITY = [
- { icon: '', text: 'Optimized Resume to 100% ATS Match', time: 'Just now' },
  { icon: '', text: 'Connected with 5 Elmhurst University Peers', time: '2h ago' },
  { icon: '', text: 'Registered for April Hackathon', time: '1d ago' },
  { icon: '', text: 'Published updated Skills framework', time: '3d ago' },
@@ -34,6 +33,24 @@ export default function ProfilePage() {
  ]);
  const [featureText, setFeatureText] = useState('');
  const [featureImg, setFeatureImg] = useState(null);
+ const [userProjects, setUserProjects] = useState(PROJECTS);
+
+ useEffect(() => {
+   async function fetchLocalData() {
+     try {
+       const stored = localStorage.getItem('jc-user');
+       if (stored) {
+         const user = JSON.parse(stored);
+         const res = await fetch(`/api/projects?userId=${user.id}`);
+         const data = await res.json();
+         if (data.success && data.projects.length > 0) {
+           setUserProjects([...data.projects.map(p => ({ title: p.title, status: ' Active', desc: p.description, tags: [] })), ...PROJECTS]);
+         }
+       }
+     } catch (e) {}
+   }
+   if (typeof window !== 'undefined') fetchLocalData();
+ }, []);
 
  const handlePostFeature = () => {
   if (!featureText && !featureImg) return;
@@ -126,15 +143,10 @@ export default function ProfilePage() {
  </div>
 
  <div className="profile-info-block" style={{ position: 'relative' }}>
- <div style={{ position: 'absolute', top: 0, right: 0, display: 'flex', gap: 10 }}>
- <button
- className="btn-primary"
- onClick={() => { if (editMode) { setBio(bioEdit); } setEditMode(e => !e); }}
- id="edit-profile-btn"
- >
+ <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
+ <button className="btn-gold" onClick={() => { if (editMode) { setBio(bioEdit); } setEditMode(e => !e); }}>
  {editMode ? 'Save Profile' : 'Edit Profile'}
  </button>
- <Link href="/resume" className="btn-ghost">Resume</Link>
  </div>
  <div className="profile-name">Sruthi Chilukuri</div>
  <div className="profile-title">Master's Student · Elmhurst University · CIT</div>
@@ -210,9 +222,11 @@ export default function ProfilePage() {
  </div>
  </div>
  ))}
- <Link href="/resume" className="btn-ghost" style={{ fontSize: '0.78rem', marginTop: 4, display: 'inline-flex' }}>
- + Add to Resume
- </Link>
+ <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 16 }}>Featured Accomplishments</h3>
+ <div style={{ background: 'var(--bg-card)', padding: 16, borderRadius: 12, border: '1px solid var(--border-color)', marginBottom: 12 }}>
+ <div style={{ fontWeight: 600 }}>Dean's List 2024</div>
+ <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Awarded for holding a 3.9+ GPA over two consecutive semesters.</div>
+ </div>
  </motion.div>
  </div>
 
@@ -278,8 +292,8 @@ export default function ProfilePage() {
  <Link href="/feed" className="btn-ghost" style={{ fontSize: '0.8rem' }}>+ Share New Project</Link>
  </div>
  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
- {PROJECTS.map(p => (
- <div key={p.title} style={{
+ {userProjects.map((p, idx) => (
+ <div key={p.title + idx} style={{
  padding: '16px 18px',
  background: 'rgba(255,255,255,0.04)',
  border: '1px solid rgba(255,255,255,0.08)',
