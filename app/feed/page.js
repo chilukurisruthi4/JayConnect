@@ -124,10 +124,17 @@ const TOPICS = [
 const FILTERS = ['All', 'Projects', 'Research', 'Ideas', 'Showcase'];
 
 export default function FeedPage() {
+ const [localUser, setLocalUser] = useState(null);
  const [posts, setPosts] = useState(INITIAL_POSTS);
  const [activeFilter, setActiveFilter] = useState('All');
 
   useEffect(() => {
+    try {
+      const stored = localStorage.getItem('jc-user');
+      if (stored) {
+        setLocalUser(JSON.parse(stored));
+      }
+    } catch(e) {}
     async function fetchPosts() {
       try {
         const params = new URLSearchParams(window.location.search);
