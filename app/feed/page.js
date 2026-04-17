@@ -134,7 +134,7 @@ export default function FeedPage() {
         const majorsParam = params.get('majors') || params.get('major');
         
         const url = majorsParam ? `/api/posts?majors=${encodeURIComponent(majorsParam)}` : '/api/posts';
-        const res = await fetch(url);
+        const res = await fetch(url, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
         const data = await res.json();
         
         if (data.success && data.posts && data.posts.length > 0) {
