@@ -317,16 +317,17 @@ export default function FeedPage() {
           likes: 0, comments: 0, interested: 0,
           isLiked: false, isInterested: false, myReaction: null,
         }, ...ps]);
+        setNewPost('');
+        setImagePreview(null);
+        showToast('Post securely saved to Database and published!');
+      } else {
+        showToast('Database Error: Your user session is likely outdated. Please sign out and sign back in.');
       }
     } catch (e) {
       console.error(e);
-      showToast('Error publishing post');
+      showToast('Network error publishing post');
     }
-
-    setNewPost('');
-    setImagePreview(null);
     setIsPublishing(false);
-    showToast('Post securely saved to Database and published!');
   };
 
  const filtered = activeFilter === 'All'
