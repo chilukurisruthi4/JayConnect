@@ -40,29 +40,17 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const data = await request.json();
-    const { content, title } = data;
+    const { content, title, userId } = data;
 
-    if (!content) {
-      return NextResponse.json({ success: false, error: 'Content is required' }, { status: 400 });
-    }
-
-    let user = await prisma.user.findFirst({ where: { email: 'chilukurisruthi4@gmail.com' } });
-    if (!user) {
-      user = await prisma.user.create({
-        data: {
-          adUsername: 'schilukuri',
-          displayName: 'Sruthi Chilukuri',
-          email: 'chilukurisruthi4@gmail.com',
-          bio: 'Building the future of JayConnect!'
-        }
-      });
+    if (!content || !userId) {
+      return NextResponse.json({ success: false, error: 'Content and userId are required' }, { status: 400 });
     }
 
     const post = await prisma.post.create({
       data: {
         title: title || 'New Post',
         content,
-        authorId: user.id
+        authorId: userId
       },
       include: {
         author: { select: { displayName: true, avatarUrl: true } }

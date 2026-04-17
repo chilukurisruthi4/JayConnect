@@ -266,11 +266,17 @@ export default function FeedPage() {
     setIsPublishing(true);
 
     try {
+      if (!localUser || !localUser.id) {
+        showToast('You must be logged in to post');
+        setIsPublishing(false);
+        return;
+      }
+      
       const isProjectForm = newPostType === 'project';
       const endpoint = isProjectForm ? '/api/projects' : '/api/posts';
       const payload = isProjectForm 
-         ? { title: 'Collaboration Blueprint', description: newPost }
-         : { content: newPost, title: 'Feed Update' };
+         ? { title: 'Collaboration Blueprint', description: newPost, userId: localUser.id }
+         : { content: newPost, title: 'Feed Update', userId: localUser.id };
 
       const res = await fetch(endpoint, {
         method: 'POST',

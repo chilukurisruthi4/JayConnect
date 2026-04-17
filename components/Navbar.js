@@ -25,15 +25,16 @@ export default function Navbar({ user: initialUser }) {
  const [notifOpen, setNotifOpen] = useState(false);
  const [userMenuOpen, setUserMenuOpen] = useState(false);
  const { theme, toggle } = useTheme();
- const [user, setUser] = useState(initialUser || { name: 'Sruthi C.', initials: 'SC', email: 'chilukurisruthi4@gmail.com' });
+ const [user, setUser] = useState(initialUser || null);
 
  useEffect(() => {
    try {
      const stored = localStorage.getItem('jc-user');
      if (stored) {
        const parsed = JSON.parse(stored);
-       const initials = parsed.fullName?.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase() || 'U';
-       setUser({ ...parsed, name: parsed.fullName, initials });
+       const nameFallback = parsed.fullName || parsed.displayName || parsed.adUsername || 'User';
+       const initials = nameFallback.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase() || 'U';
+       setUser({ ...parsed, name: nameFallback, initials });
      }
    } catch(e) {}
  }, []);
@@ -127,18 +128,22 @@ export default function Navbar({ user: initialUser }) {
  }} />
  </button>
 
- <div 
- className="avatar" 
- title={user.name} 
- onClick={() => { setUserMenuOpen(!userMenuOpen); setNotifOpen(false); }}
- style={{ cursor: 'pointer' }}
- >
- {user.initials}
- </div>
+ {user ? (
+   <div 
+   className="avatar" 
+   title={user.name} 
+   onClick={() => { setUserMenuOpen(!userMenuOpen); setNotifOpen(false); }}
+   style={{ cursor: 'pointer' }}
+   >
+   {user.initials}
+   </div>
+ ) : (
+   <Link href="/login" className="btn-ghost" style={{ padding: '6px 12px', fontSize: '0.85rem' }}>Login</Link>
+ )}
  </div>
 
  {/* User Dropdown */}
- {userMenuOpen && (
+ {userMenuOpen && user && (
  <div style={{
  position: 'absolute',
  top: 74,
@@ -157,7 +162,7 @@ export default function Navbar({ user: initialUser }) {
  }}>
  <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)' }}>
  <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>{user.name}</div>
- <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>chilukurisruthi4@gmail.com</div>
+ <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{user.email || 'Student'}</div>
  </div>
  
  <div style={{ padding: '8px 0' }}>

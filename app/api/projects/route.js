@@ -38,9 +38,7 @@ export async function POST(request) {
 
     let strictId = userId;
     if (!strictId) {
-      const user = await prisma.user.findFirst({ where: { email: 'chilukurisruthi4@gmail.com' } });
-      if (user) strictId = user.id;
-      else return NextResponse.json({ success: false, error: 'Parent model mapping null' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Parent model mapping null' }, { status: 400 });
     }
 
     const project = await prisma.project.create({
