@@ -4,33 +4,42 @@ import prisma from '../../../../lib/prisma';
 export async function POST(request) {
   try {
     const data = await request.json();
-    const { email, action } = data;
+    const { eNumber, password, action } = data;
 
-    if (!email) {
-      return NextResponse.json({ success: false, error: 'Email parameter required' }, { status: 400 });
+    if (!eNumber || !password) {
+      return NextResponse.json({ success: false, error: 'e-Number and Password are required' }, { status: 400 });
     }
 
-    // "Login" mocks authenticating the email. "Register" mocks creating the user context.
-    let user = await prisma.user.findUnique({
-      where: { email }
+    // Since we added eNumber later, we use findFirst because it might not be explicitly populated yet on old users
+    let user = await prisma.user.findFirst({
+      where: { eNumber }
     });
 
-    if (!user) {
-      if (action === 'login') {
-        return NextResponse.json({ success: false, error: 'No account found matching this email. Please register.' }, { status: 404 });
-      } else {
-        const username = email.split('@')[0];
-        const fullName = username.split('.').map(n => n.charAt(0).toUpperCase() + n.slice(1)).join(' ') || 'New User';
-        
-        user = await prisma.user.create({
-          data: {
-            email,
-            adUsername: username,
-            displayName: fullName,
-          }
-        });
+    if (action === 'login') {
+      if (!user) {
+        return NextResponse.json({ success: false, error: 'Invalid e-Number. Please register first.' }, { status: 404 });
       }
+      if (user.password !== password) {
+        return NextResponse.json({ success: false, error: 'Incorrect password.' }, { status: 401 });
+      }
+      return NextResponse.json({ success: true, user });
+    } 
+    
+    // Register
+    if (user) {
+      return NextResponse.json({ success: false, error: 'e-Number already registered. Please login.' }, { status: 400 });
     }
+
+    // Create a new securely mapped user
+    user = await prisma.user.create({
+      data: {
+        eNumber,
+        password,
+        email: `${eNumber}@elmhurst.edu`, // Mock generation mapped to e-Number
+        adUsername: eNumber,
+        displayName: `Student ${eNumber.substring(0,4)}`,
+      }
+    });
 
     return NextResponse.json({ success: true, user });
 

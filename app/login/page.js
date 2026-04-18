@@ -4,7 +4,8 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
+  const [eNumber, setENumber] = useState('');
+  const [password, setPassword] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -12,8 +13,8 @@ export default function LoginPage() {
 
   const handleAuth = async (e) => {
     e.preventDefault();
-    if (!email.includes('@')) {
-      setError('Please enter a valid Elmhurst email address.');
+    if (!eNumber || !password) {
+      setError('Please provide your ID and password.');
       return;
     }
     
@@ -24,7 +25,7 @@ export default function LoginPage() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, action: isRegistering ? 'register' : 'login' })
+        body: JSON.stringify({ eNumber, password, action: isRegistering ? 'register' : 'login' })
       });
 
       const data = await res.json();
@@ -58,18 +59,39 @@ export default function LoginPage() {
           <img src="/logo.png" alt="JayConnect Logo" style={{ width: '54px', height: '54px', borderRadius: '12px', objectFit: 'cover', margin: '0 auto 16px auto', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }} />
           <h1 style={{ fontSize: '1.8rem', fontWeight: 700, margin: '0 0 8px 0' }}>Welcome to JayConnect</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0 }}>
-            {isRegistering ? 'Register your Elmhurst network account.' : 'Sign in using your Elmhurst email account.'}
+            {isRegistering ? 'Register your Elmhurst Student account.' : 'Sign in using your Elmhurst e-Number.'}
           </p>
         </div>
 
         <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>Email Address</label>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>Student ID (e-Number)</label>
             <input 
-              type="email" 
-              placeholder="e.g. ssmith@elmhurst.edu"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
+              type="text" 
+              placeholder="e.g. e12345678"
+              value={eNumber}
+              onChange={e => setENumber(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: 8,
+                border: '1px solid var(--border-color)',
+                background: 'var(--bg-surface-2)',
+                color: 'var(--text-primary)',
+                fontSize: '0.95rem',
+                outline: 'none'
+              }}
+              required
+            />
+          </div>
+          
+          <div>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>Password</label>
+            <input 
+              type="password" 
+              placeholder="••••••••"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
               style={{
                 width: '100%',
                 padding: '12px 16px',
