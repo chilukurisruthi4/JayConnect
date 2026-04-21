@@ -25,6 +25,18 @@ export async function POST(request) {
       return NextResponse.json({ success: true, user });
     } 
     
+    // Reset Password
+    if (action === 'reset') {
+      if (!user) {
+        return NextResponse.json({ success: false, error: 'No account found matching this e-Number.' }, { status: 404 });
+      }
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { password }
+      });
+      return NextResponse.json({ success: true, user });
+    }
+
     // Register
     if (user) {
       return NextResponse.json({ success: false, error: 'e-Number already registered. Please login.' }, { status: 400 });

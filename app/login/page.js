@@ -7,6 +7,7 @@ export default function LoginPage() {
   const [eNumber, setENumber] = useState('');
   const [password, setPassword] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
@@ -22,10 +23,11 @@ export default function LoginPage() {
     setError('');
 
     try {
+      const actionType = isForgotPassword ? 'reset' : (isRegistering ? 'register' : 'login');
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ eNumber, password, action: isRegistering ? 'register' : 'login' })
+        body: JSON.stringify({ eNumber, password, action: actionType })
       });
 
       const data = await res.json();
@@ -57,9 +59,12 @@ export default function LoginPage() {
       >
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <img src="/logo.png" alt="JayConnect Logo" style={{ width: '54px', height: '54px', borderRadius: '12px', objectFit: 'cover', margin: '0 auto 16px auto', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }} />
-          <h1 style={{ fontSize: '1.8rem', fontWeight: 700, margin: '0 0 8px 0' }}>Welcome to JayConnect</h1>
+          <h1 style={{ fontSize: '1.8rem', fontWeight: 700, margin: '0 0 8px 0' }}>
+            {isForgotPassword ? 'Reset Password' : 'Welcome to JayConnect'}
+          </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0 }}>
-            {isRegistering ? 'Register your Elmhurst Student account.' : 'Sign in using your Elmhurst e-Number.'}
+            {isForgotPassword ? 'Enter your e-Number and your new password.' : 
+             (isRegistering ? 'Register your Elmhurst Student account.' : 'Sign in using your Elmhurst e-Number.')}
           </p>
         </div>
 
@@ -118,18 +123,42 @@ export default function LoginPage() {
             disabled={loading}
             style={{ padding: '14px', width: '100%', justifyContent: 'center', fontSize: '1rem', marginTop: 8 }}
           >
-            {loading ? 'Authenticating...' : (isRegistering ? 'Register Account' : 'Sign In')}
+            {loading ? 'Processing...' : (isForgotPassword ? 'Reset Password' : (isRegistering ? 'Register Account' : 'Sign In'))}
           </button>
         </form>
 
         <div style={{ marginTop: 24, textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-          {isRegistering ? 'Already have an account?' : 'New to JayConnect?'}
-          <button 
-            onClick={() => { setIsRegistering(!isRegistering); setError(''); }}
-            style={{ background: 'none', border: 'none', color: 'var(--blue)', fontWeight: 600, marginLeft: 6, cursor: 'pointer', padding: 0 }}
-          >
-            {isRegistering ? 'Sign In here' : 'Register here'}
-          </button>
+          {isForgotPassword ? (
+            <>
+              Remember your password? 
+              <button 
+                onClick={() => { setIsForgotPassword(false); setError(''); }}
+                style={{ background: 'none', border: 'none', color: 'var(--blue)', fontWeight: 600, marginLeft: 6, cursor: 'pointer', padding: 0 }}
+              >
+                Sign In
+              </button>
+            </>
+          ) : (
+            <>
+              <div style={{ marginBottom: '12px' }}>
+                <button 
+                  onClick={() => { setIsForgotPassword(true); setIsRegistering(false); setError(''); }}
+                  style={{ background: 'none', border: 'none', color: 'var(--blue)', fontWeight: 600, cursor: 'pointer', padding: 0 }}
+                >
+                  Forgot Password?
+                </button>
+              </div>
+              <div>
+                {isRegistering ? 'Already have an account?' : 'New to JayConnect?'}
+                <button 
+                  onClick={() => { setIsRegistering(!isRegistering); setError(''); }}
+                  style={{ background: 'none', border: 'none', color: 'var(--blue)', fontWeight: 600, marginLeft: 6, cursor: 'pointer', padding: 0 }}
+                >
+                  {isRegistering ? 'Sign In here' : 'Register here'}
+                </button>
+              </div>
+            </>
+          )}
         </div>
 
       </motion.div>
