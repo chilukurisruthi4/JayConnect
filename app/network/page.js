@@ -5,14 +5,7 @@ import Link from 'next/link';
 
 import { useEffect } from 'react';
 
-const PEOPLE_DATABASE = [
- { id: 1, name: 'Dr. John Richards', role: 'Professor of Computer Science', type: 'Faculty', mutuals: 12, connected: false, avatar: 'JR' },
- { id: 2, name: 'Alice Chen', role: 'MS in Data Science Candidate', type: 'Student', mutuals: 4, connected: false, avatar: 'AC' },
- { id: 3, name: 'Marcus Freeman', role: 'Career Services Advisor', type: 'Staff', mutuals: 2, connected: false, avatar: 'MF' },
- { id: 4, name: 'Sarah Miller', role: 'BS Computer Information Technology', type: 'Student', mutuals: 15, connected: false, avatar: 'SM' },
- { id: 5, name: 'David Lee', role: 'Alumni (Software Engineer at DXC)', type: 'Alumni', mutuals: 8, connected: false, avatar: 'DL' },
- { id: 6, name: 'Erika Vasquez', role: 'MS IT Management', type: 'Student', mutuals: 6, connected: false, avatar: 'EV' },
-];
+const PEOPLE_DATABASE = [];
 
 export default function NetworkPage() {
  const [search, setSearch] = useState('');
@@ -35,8 +28,8 @@ export default function NetworkPage() {
        }
 
        const [usersRes, connRes] = await Promise.all([
-         fetch('/api/users'),
-         localUserId ? fetch(`/api/connections?userId=${localUserId}`) : Promise.resolve({ json: () => ({ success: false }) })
+         fetch('/api/users', { headers: { 'Cache-Control': 'no-store' } }),
+         localUserId ? fetch(`/api/connections?userId=${localUserId}`, { headers: { 'Cache-Control': 'no-store' } }) : Promise.resolve({ json: () => ({ success: false }) })
        ]);
 
        const usersData = await usersRes.json();
