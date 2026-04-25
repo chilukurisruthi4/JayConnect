@@ -72,6 +72,7 @@ model Connection {
   id            String   @id @default(uuid())
   followerId    String
   followingId   String
+  status        String   @default("PENDING")
   createdAt     DateTime @default(now())
   
   follower      User     @relation("UserConnections", fields: [followerId], references: [id], onDelete: Cascade)

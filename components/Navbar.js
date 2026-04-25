@@ -26,6 +26,7 @@ export default function Navbar({ user: initialUser }) {
  const [userMenuOpen, setUserMenuOpen] = useState(false);
  const { theme, toggle } = useTheme();
  const [user, setUser] = useState(initialUser || null);
+ const [pendingRequests, setPendingRequests] = useState([]);
 
  useEffect(() => {
    try {
@@ -35,6 +36,15 @@ export default function Navbar({ user: initialUser }) {
        const nameFallback = parsed.fullName || parsed.displayName || parsed.adUsername || 'User';
        const initials = nameFallback.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase() || 'U';
        setUser({ ...parsed, name: nameFallback, initials });
+       // Fetch pending connection requests for this user
+       fetch(`/api/connections?userId=${parsed.id}`)
+         .then(r => r.json())
+         .then(data => {
+           if (data.success && data.pendingIncoming) {
+             setPendingRequests(data.pendingIncoming);
+           }
+         })
+         .catch(() => {});
      }
    } catch(e) {}
  }, []);

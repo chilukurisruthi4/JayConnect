@@ -41,7 +41,7 @@ export default function NetworkPage() {
          const formattedUsers = usersData.users
            .filter(u => u.id !== localUserId) // Exclude self
            .map(u => {
-             const isConnected = activeConnections.some(c => 
+             const connection = activeConnections.find(c => 
                (c.followerId === u.id || c.followingId === u.id)
              );
              return {
@@ -50,7 +50,7 @@ export default function NetworkPage() {
                role: u.major || 'Undecided Major',
                type: u.role?.includes('Professor') ? 'Faculty' : 'Student',
                mutuals: Math.floor(Math.random() * 20), // Placeholder mock data
-               connected: isConnected,
+               connectionStatus: connection ? connection.status : 'NONE',
                avatar: (u.displayName || u.adUsername || 'U').split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase()
              };
            });
@@ -75,12 +75,16 @@ export default function NetworkPage() {
    }
    
    const person = people.find(p => p.id === id);
-   const isConnecting = !person.connected;
+   const currentStatus = person.connectionStatus;
 
+   // Optimistic update
    setPeople(prev => prev.map(p => {
      if (p.id !== id) return p;
-     if (isConnecting) showToast(`Connection request sent to ${p.name}!`);
-     return { ...p, connected: !p.connected };
+     if (currentStatus === 'NONE') {
+       showToast(`Connection request sent to ${p.name}!`);
+       return { ...p, connectionStatus: 'PENDING' };
+     }
+     return p; // Can't un-send once pending
    }));
 
    try {
@@ -90,7 +94,7 @@ export default function NetworkPage() {
        body: JSON.stringify({
          followerId: activeUser.id,
          followingId: id,
-         action: isConnecting ? 'connect' : 'disconnect'
+         action: currentStatus === 'NONE' ? 'connect' : 'disconnect'
        })
      });
    } catch (e) {
@@ -152,13 +156,16 @@ export default function NetworkPage() {
  {p.mutuals} mutual connections
  </div>
  <div style={{ marginTop: 'auto', width: '100%' }}>
+ {p.connectionStatus === 'ACCEPTED' ? null : (
  <button 
- className={p.connected ? 'btn-ghost' : 'btn-primary'}
- style={{ width: '100%', padding: '10px 0', borderRadius: 8, fontWeight: 600, opacity: p.connected ? 0.7 : 1 }}
- onClick={() => p.connected ? handleConnect(p.id) : setAiModal(p)}
+ className={p.connectionStatus === 'PENDING' ? 'btn-ghost' : 'btn-primary'}
+ style={{ width: '100%', padding: '10px 0', borderRadius: 8, fontWeight: 600, opacity: p.connectionStatus === 'PENDING' ? 0.6 : 1, cursor: p.connectionStatus === 'PENDING' ? 'default' : 'pointer' }}
+ onClick={() => p.connectionStatus === 'NONE' ? setAiModal(p) : null}
+ disabled={p.connectionStatus === 'PENDING'}
  >
- {p.connected ? 'Pending Request' : '+ Connect'}
+ {p.connectionStatus === 'PENDING' ? '⏳ Pending' : '+ Connect'}
  </button>
+ )}
  </div>
  </div>
  ))}
