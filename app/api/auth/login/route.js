@@ -4,7 +4,7 @@ import prisma from '../../../../lib/prisma';
 export async function POST(request) {
   try {
     const data = await request.json();
-    const { eNumber, password, action } = data;
+    const { eNumber, password, major, action } = data;
 
     if (!eNumber || !password) {
       return NextResponse.json({ success: false, error: 'e-Number and Password are required' }, { status: 400 });
@@ -50,6 +50,7 @@ export async function POST(request) {
         email: `${eNumber}@elmhurst.edu`, // Mock generation mapped to e-Number
         adUsername: eNumber,
         displayName: `Student ${eNumber.substring(0,4)}`,
+        major: major || 'Undecided Major',
       }
     });
 

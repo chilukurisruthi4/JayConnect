@@ -18,17 +18,23 @@ export async function GET(request) {
         orderBy: { createdAt: 'desc' }
       });
     } else {
+      const userId = searchParams.get('userId');
       posts = await prisma.post.findMany({
         include: {
           author: {
             select: { displayName: true, avatarUrl: true }
           },
+          ...(userId ? { likes: { where: { userId } } } : {}),
           _count: {
             select: { comments: true, likes: true }
           }
         },
         orderBy: { createdAt: 'desc' }
       });
+      
+      if (userId) {
+        posts = posts.map(p => ({ ...p, isLiked: p.likes && p.likes.length > 0 }));
+      }
     }
 
     return NextResponse.json({ success: true, posts });

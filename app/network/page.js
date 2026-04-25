@@ -47,7 +47,7 @@ export default function NetworkPage() {
              return {
                id: u.id,
                name: u.displayName || u.adUsername || 'Student',
-               role: u.role || 'Student',
+               role: u.major || 'Undecided Major',
                type: u.role?.includes('Professor') ? 'Faculty' : 'Student',
                mutuals: Math.floor(Math.random() * 20), // Placeholder mock data
                connected: isConnected,

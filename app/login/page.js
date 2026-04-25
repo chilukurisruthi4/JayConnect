@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 export default function LoginPage() {
   const [eNumber, setENumber] = useState('');
   const [password, setPassword] = useState('');
+  const [major, setMajor] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -27,7 +28,7 @@ export default function LoginPage() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ eNumber, password, action: actionType })
+        body: JSON.stringify({ eNumber, password, major, action: actionType })
       });
 
       const data = await res.json();
@@ -110,6 +111,29 @@ export default function LoginPage() {
               required
             />
           </div>
+
+          {isRegistering && (
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>Major / Field of Study</label>
+              <input 
+                type="text" 
+                placeholder="e.g. Data Science"
+                value={major}
+                onChange={e => setMajor(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  borderRadius: 8,
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-surface-2)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.95rem',
+                  outline: 'none'
+                }}
+                required={isRegistering}
+              />
+            </motion.div>
+          )}
 
           {error && (
             <div style={{ padding: 12, borderRadius: 8, background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#ef4444', fontSize: '0.85rem', textAlign: 'center' }}>

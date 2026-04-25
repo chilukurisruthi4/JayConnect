@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../app/generated/prisma"
   previewFeatures = ["driverAdapters"]
 }
 
@@ -17,6 +16,7 @@ model User {
   displayName   String?
   avatarUrl     String?
   bio           String?
+  major         String?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
   

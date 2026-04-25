@@ -34,7 +34,13 @@ export default function FeedPage() {
         const params = new URLSearchParams(window.location.search);
         const majorsParam = params.get('majors') || params.get('major');
         
-        const url = majorsParam ? `/api/posts?majors=${encodeURIComponent(majorsParam)}` : '/api/posts';
+        let url = majorsParam ? `/api/posts?majors=${encodeURIComponent(majorsParam)}` : '/api/posts';
+        const storedAuth = localStorage.getItem('jc-user');
+        if (storedAuth) {
+          const authObj = JSON.parse(storedAuth);
+          url += (url.includes('?') ? '&' : '?') + `userId=${authObj.id}`;
+        }
+        
         const res = await fetch(url, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
         const data = await res.json();
         
@@ -57,10 +63,10 @@ export default function FeedPage() {
             ...typeMap['idea'],
             content: post.content,
             tags: post.tags || [],
-            likes: post.likes || 0,
+            likes: post._count?.likes || 0,
             comments: post._count?.comments || 0,
             interested: 0,
-            isLiked: false,
+            isLiked: post.isLiked || false,
             isInterested: false,
           }));
           setPosts(formatted);
@@ -146,13 +152,38 @@ export default function FeedPage() {
  setTimeout(() => setToast(null), 3500);
  };
 
- const handleLike = (id) => {
- setPosts(ps => ps.map(p =>
- p.id === id
- ? { ...p, likes: p.isLiked ? p.likes - 1 : p.likes + 1, isLiked: !p.isLiked }
- : p
- ));
- };
+  const handleLike = async (id) => {
+    if (!localUser || !localUser.id) {
+      showToast('You must be logged in to like posts');
+      return;
+    }
+
+    const postToLike = posts.find(p => p.id === id);
+    if (!postToLike) return;
+    const isLiking = !postToLike.isLiked;
+
+    setPosts(ps => ps.map(p =>
+      p.id === id
+      ? { ...p, likes: isLiking ? p.likes + 1 : p.likes - 1, isLiked: isLiking }
+      : p
+    ));
+
+    try {
+      const res = await fetch(`/api/posts/${id}/like`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: isLiking ? 'like' : 'unlike', userId: localUser.id }),
+      });
+      if (!res.ok) throw new Error('Like failed');
+    } catch (err) {
+      console.error('Failed to update like status:', err);
+      setPosts(ps => ps.map(p =>
+        p.id === id
+        ? { ...p, likes: isLiking ? p.likes - 1 : p.likes + 1, isLiked: !isLiking }
+        : p
+      ));
+    }
+  };
 
  const handleInterest = (id) => {
  setPosts(ps => ps.map(p => {
