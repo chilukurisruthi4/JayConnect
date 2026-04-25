@@ -27,6 +27,7 @@ export default function Navbar({ user: initialUser }) {
  const { theme, toggle } = useTheme();
  const [user, setUser] = useState(initialUser || null);
  const [pendingRequests, setPendingRequests] = useState([]);
+ const [generalNotifs, setGeneralNotifs] = useState([]);
 
  useEffect(() => {
    try {
@@ -36,18 +37,40 @@ export default function Navbar({ user: initialUser }) {
        const nameFallback = parsed.fullName || parsed.displayName || parsed.adUsername || 'User';
        const initials = nameFallback.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase() || 'U';
        setUser({ ...parsed, name: nameFallback, initials });
-       // Fetch pending connection requests for this user
+
+       // Fetch pending connection requests
        fetch(`/api/connections?userId=${parsed.id}`)
          .then(r => r.json())
          .then(data => {
-           if (data.success && data.pendingIncoming) {
-             setPendingRequests(data.pendingIncoming);
-           }
+           if (data.success && data.pendingIncoming) setPendingRequests(data.pendingIncoming);
+         })
+         .catch(() => {});
+
+       // Fetch general notifications (interest, etc.)
+       fetch(`/api/notifications?userId=${parsed.id}`)
+         .then(r => r.json())
+         .then(data => {
+           if (data.success && data.notifications) setGeneralNotifs(data.notifications);
          })
          .catch(() => {});
      }
    } catch(e) {}
  }, []);
+
+ const totalUnread = pendingRequests.length + generalNotifs.length;
+
+ const dismissNotif = async (notifId) => {
+   setGeneralNotifs(prev => prev.filter(n => n.id !== notifId));
+   const stored = localStorage.getItem('jc-user');
+   if (stored) {
+     const parsed = JSON.parse(stored);
+     await fetch('/api/notifications', {
+       method: 'PATCH',
+       headers: { 'Content-Type': 'application/json' },
+       body: JSON.stringify({ notificationId: notifId, userId: parsed.id })
+     }).catch(() => {});
+   }
+ };
 
  const handleLogout = (e) => {
    e.preventDefault();
@@ -149,7 +172,7 @@ export default function Navbar({ user: initialUser }) {
    </div>
  ) : (
    <Link href="/login" className="btn-ghost" style={{ padding: '6px 12px', fontSize: '0.85rem' }}>Login</Link>
- )}
+ ))}
  </div>
 
  {/* User Dropdown */}
@@ -195,42 +218,33 @@ export default function Navbar({ user: initialUser }) {
  )}
 
  {notifOpen && (
- <div style={{
- position: 'absolute',
- top: 74,
- right: 32,
- width: 320,
- background: 'var(--navbar-bg)',
- backdropFilter: 'blur(30px)',
- WebkitBackdropFilter: 'blur(30px)',
- border: '1px solid var(--border-color)',
- borderRadius: 16,
- boxShadow: 'var(--shadow-lg)',
- zIndex: 300,
- overflow: 'hidden'
- }}>
- <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)', fontWeight: 700, color: 'var(--text-primary)' }}>
- Notifications
- </div>
- {[
- { icon: '🤝', msg: 'Prof. Chen liked your AI Research post', time: '2m ago' },
- { icon: '💬', msg: 'Alex K. commented: "Love this idea!"', time: '14m ago' },
- { icon: '🚀', msg: 'Hackathon registration opens tomorrow!', time: '1h ago' },
- ].map((n, i) => (
- <div key={i} style={{
- display: 'flex', gap: 12, alignItems: 'flex-start',
- padding: '12px 20px',
- borderBottom: '1px solid var(--border-color)',
- cursor: 'pointer',
- transition: 'background 0.15s'
- }}>
- <span style={{ fontSize: '1.2rem' }}>{n.icon}</span>
- <div style={{ flex: 1 }}>
- <p style={{ fontSize: '0.83rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{n.msg}</p>
- <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 3 }}>{n.time}</p>
- </div>
- </div>
- ))}
+ <div style={{ position: 'absolute', top: 74, right: 32, width: 340, background: 'var(--navbar-bg)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)', border: '1px solid var(--border-color)', borderRadius: 16, boxShadow: 'var(--shadow-lg)', zIndex: 300, overflow: 'hidden', maxHeight: 480, overflowY: 'auto' }}>
+  <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: 'var(--navbar-bg)' }}>
+   Notifications
+   {totalUnread > 0 && <span style={{ fontSize: '0.75rem', background: 'var(--gold)', color: '#000', borderRadius: 99, padding: '2px 8px', fontWeight: 700 }}>{totalUnread} new</span>}
+  </div>
+  {totalUnread === 0 && (
+   <div style={{ padding: '28px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>🎉 No new notifications</div>
+  )}
+  {pendingRequests.map((req, i) => (
+   <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '12px 20px', borderBottom: '1px solid var(--border-color)' }}>
+    <span style={{ fontSize: '1.2rem' }}>🤝</span>
+    <div style={{ flex: 1 }}>
+     <p style={{ fontSize: '0.83rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}><strong>{req.follower?.displayName || 'Someone'}</strong> sent you a connection request</p>
+     <button onClick={async () => { await fetch('/api/connections', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ followerId: req.followerId, followingId: req.followingId, action: 'accept' }) }); setPendingRequests(pr => pr.filter((_, idx) => idx !== i)); }} style={{ marginTop: 6, padding: '4px 12px', borderRadius: 6, background: 'var(--gold)', color: '#000', border: 'none', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer' }}>✓ Accept</button>
+    </div>
+   </div>
+  ))}
+  {generalNotifs.map((notif) => (
+   <div key={notif.id} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '12px 20px', borderBottom: '1px solid var(--border-color)' }}>
+    <span style={{ fontSize: '1.2rem' }}>{notif.type === 'INTEREST' ? '⭐' : '🔔'}</span>
+    <div style={{ flex: 1 }}>
+     <p style={{ fontSize: '0.83rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{notif.message}</p>
+     <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 3 }}>{new Date(notif.createdAt).toLocaleDateString()}</p>
+    </div>
+    <button onClick={() => dismissNotif(notif.id)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1rem', padding: '0 4px', flexShrink: 0 }}>✕</button>
+   </div>
+  ))}
  </div>
  )}
  </nav>

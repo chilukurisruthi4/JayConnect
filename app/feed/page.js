@@ -54,6 +54,7 @@ export default function FeedPage() {
 
           const formatted = data.posts.map(post => ({
             id: post.id,
+            authorId: post.authorId,
             name: post.author?.displayName || post.author?.adUsername || 'Student Match',
             initials: (post.author?.displayName || 'U').split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase(),
             color: 'linear-gradient(135deg,#1565c0,#7c3aed)',
@@ -185,12 +186,39 @@ export default function FeedPage() {
     }
   };
 
- const handleInterest = (id) => {
- setPosts(ps => ps.map(p => {
- if (p.id !== id) return p;
- if (!p.isInterested) showToast(" Your interest has been sent! The author will be notified.");
- return { ...p, interested: p.isInterested ? p.interested - 1 : p.interested + 1, isInterested: !p.isInterested };
- }));
+ const handleInterest = async (id) => {
+   if (!localUser || !localUser.id) {
+     showToast('You must be logged in to express interest');
+     return;
+   }
+   const post = posts.find(p => p.id === id);
+   if (!post) return;
+   const isExpressing = !post.isInterested;
+
+   setPosts(ps => ps.map(p => {
+     if (p.id !== id) return p;
+     if (isExpressing) showToast('🌟 Your interest has been sent! The author will be notified.');
+     return { ...p, interested: isExpressing ? p.interested + 1 : p.interested - 1, isInterested: isExpressing };
+   }));
+
+   if (isExpressing && post.authorId) {
+     const senderName = localUser.displayName || localUser.adUsername || 'A student';
+     try {
+       await fetch('/api/notifications', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({
+           recipientId: post.authorId,
+           senderId: localUser.id,
+           type: 'INTEREST',
+           message: `${senderName} is interested in your post: "${post.content?.substring(0, 60)}${post.content?.length > 60 ? '…' : ''}"`,
+           postId: id
+         })
+       });
+     } catch (e) {
+       console.error('Failed to send interest notification', e);
+     }
+   }
  };
 
   const handlePost = async () => {

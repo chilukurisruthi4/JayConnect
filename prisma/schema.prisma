@@ -28,6 +28,8 @@ model User {
   connections   Connection[] @relation("UserConnections")
   connectedBy   Connection[] @relation("ConnectedToUser")
   projects      Project[]
+  receivedNotifications Notification[] @relation("ReceivedNotifications")
+  sentNotifications     Notification[] @relation("SentNotifications")
 }
 
 model Post {
@@ -105,4 +107,18 @@ model Message {
   
   sender      User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
   receiver    User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  type        String   // e.g. "INTEREST", "CONNECTION_REQUEST", "CONNECTION_ACCEPTED"
+  message     String
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  recipientId String
+  senderId    String
+  postId      String?
+
+  recipient   User     @relation("ReceivedNotifications", fields: [recipientId], references: [id], onDelete: Cascade)
+  sender      User     @relation("SentNotifications", fields: [senderId], references: [id], onDelete: Cascade)
 }
