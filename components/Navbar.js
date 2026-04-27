@@ -151,20 +151,15 @@ export default function Navbar({ user: initialUser }) {
  }}
  >
  🔔
- <span style={{
- position: 'absolute',
- top: 6, right: 6,
- width: 8, height: 8,
- background: 'var(--gold)',
- borderRadius: '50%',
- border: `2px solid var(--bg-page)`
- }} />
+ {totalUnread > 0 && (
+ <span style={{ position: 'absolute', top: 4, right: 4, minWidth: 16, height: 16, background: 'var(--gold)', borderRadius: '50%', border: `2px solid var(--bg-page)`, fontSize: '0.6rem', fontWeight: 700, color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{totalUnread}</span>
+ )}
  </button>
 
  {user ? (
-   <div 
-   className="avatar" 
-   title={user.name} 
+   <div
+   className="avatar"
+   title={user.name}
    onClick={() => { setUserMenuOpen(!userMenuOpen); setNotifOpen(false); }}
    style={{ cursor: 'pointer' }}
    >
@@ -172,8 +167,9 @@ export default function Navbar({ user: initialUser }) {
    </div>
  ) : (
    <Link href="/login" className="btn-ghost" style={{ padding: '6px 12px', fontSize: '0.85rem' }}>Login</Link>
- ))}
+ )}
  </div>
+
 
  {/* User Dropdown */}
  {userMenuOpen && user && (
@@ -237,7 +233,7 @@ export default function Navbar({ user: initialUser }) {
   ))}
   {generalNotifs.map((notif) => (
    <div key={notif.id} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '12px 20px', borderBottom: '1px solid var(--border-color)' }}>
-    <span style={{ fontSize: '1.2rem' }}>{notif.type === 'INTEREST' ? '⭐' : '🔔'}</span>
+    <span style={{ fontSize: '1.2rem' }}>{notif.type === 'INTEREST' ? '⭐' : notif.type === 'NEW_EVENT' ? '📅' : '🔔'}</span>
     <div style={{ flex: 1 }}>
      <p style={{ fontSize: '0.83rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{notif.message}</p>
      <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 3 }}>{new Date(notif.createdAt).toLocaleDateString()}</p>

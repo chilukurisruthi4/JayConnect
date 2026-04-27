@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
 import prisma from '../../../lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request) {
   try {
     const events = await prisma.event.findMany({
       include: {
         organizer: {
-          select: { fullName: true, role: true }
+          select: { displayName: true, eNumber: true }
         }
       },
       orderBy: { eventDate: 'asc' }
@@ -28,20 +30,49 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: 'Missing required event parameters' }, { status: 400 });
     }
 
+    // Find the organizer by eNumber or id
+    const organizer = await prisma.user.findFirst({
+      where: { OR: [{ eNumber: organizerId }, { id: organizerId }] }
+    });
+
+    if (!organizer) {
+      return NextResponse.json({ success: false, error: 'Organizer not found' }, { status: 404 });
+    }
+
     const event = await prisma.event.create({
       data: {
         title,
         description,
         location,
         eventDate: new Date(eventDate),
-        organizerENumber: organizerId
+        organizerENumber: organizer.eNumber
       },
       include: {
-        organizer: {
-          select: { fullName: true, role: true }
-        }
+        organizer: { select: { displayName: true, eNumber: true } }
       }
     });
+
+    // Fan-out: notify ALL other users about this new event
+    const allUsers = await prisma.user.findMany({
+      where: { id: { not: organizer.id } },
+      select: { id: true }
+    });
+
+    const organizerName = organizer.displayName || organizer.eNumber || 'Someone';
+    const eventDateStr = new Date(eventDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const notifMessage = `📅 New event: "${title}" on ${eventDateStr} — posted by ${organizerName}`;
+
+    if (allUsers.length > 0) {
+      await prisma.notification.createMany({
+        data: allUsers.map(u => ({
+          recipientId: u.id,
+          senderId: organizer.id,
+          type: 'NEW_EVENT',
+          message: notifMessage,
+          postId: null
+        }))
+      });
+    }
 
     return NextResponse.json({ success: true, event }, { status: 201 });
   } catch (error) {
