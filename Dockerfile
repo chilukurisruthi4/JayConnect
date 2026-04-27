@@ -1,42 +1,46 @@
 FROM node:20-alpine AS base
 
-# Step 1. Rebuild the source code only when needed
+# ─── Builder stage ────────────────────────────────────────────────────────────
 FROM base AS builder
 WORKDIR /app
 
-# Install dependencies based on the preferred package manager
+# Install dependencies
 COPY package.json package-lock.json* ./
-# Omit --frozen-lockfile for now in case your lockfile isn't synced
 RUN npm ci
 
-COPY . .
+# Copy Prisma schema BEFORE generating (required by prisma generate)
+COPY prisma ./prisma
 
-# Generate Prisma engine module natively
+# Generate Prisma Client against the schema
 RUN npx prisma generate
 
-# Build Next.js
+# Copy the rest of the source
+COPY . .
+
+# Build Next.js (standalone output)
 RUN npm run build
 
-# Step 2. Production image, copy all the files and run next
+# ─── Runner stage ─────────────────────────────────────────────────────────────
 FROM base AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
-# Uncomment the following line in case you want to disable telemetry during runtime.
-# ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/package.json ./package.json
-
-# Automatically leverage output traces to reduce image size
+# Copy Next.js standalone output
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
-# IMPORTANT: Copy custom Prisma generative layout explicitly ignoring auto-trace removals
-COPY --from=builder --chown=nextjs:nodejs /app/app/generated/prisma ./app/generated/prisma
+# Copy Prisma client (generated into node_modules) so queries work at runtime
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
+
+# Copy prisma schema for any runtime migrations
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 
 USER nextjs
 
@@ -44,4 +48,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
+# DATABASE_URL is injected at runtime via --env-file or -e flag
 CMD ["node", "server.js"]

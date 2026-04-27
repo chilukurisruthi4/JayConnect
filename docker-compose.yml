@@ -2,8 +2,17 @@ version: '3.8'
 services:
   jayconnect:
     build: .
+    image: jayconnect:latest
+    container_name: jayconnect_app
     ports:
       - "3000:3000"
-    env_file:
-      - .env
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
