@@ -1,22 +1,27 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 
 export default function LoginPage() {
   const [eNumber, setENumber] = useState('');
   const [password, setPassword] = useState('');
-  const [major, setMajor] = useState('');
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
 
-  const handleAuth = async (e) => {
+  useEffect(() => {
+    // Check if already logged in
+    const stored = localStorage.getItem('jc-user');
+    if (stored) {
+      window.location.href = '/feed';
+    }
+  }, []);
+
+  const handleLogin = async (e) => {
     e.preventDefault();
     if (!eNumber || !password) {
-      setError('Please provide your ID and password.');
+      setError('Please provide your E-Number and password.');
       return;
     }
     
@@ -24,20 +29,19 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const actionType = isForgotPassword ? 'reset' : (isRegistering ? 'register' : 'login');
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ eNumber, password, major, action: actionType })
+        body: JSON.stringify({ eNumber, password, action: 'login' })
       });
 
       const data = await res.json();
       
       if (data.success) {
-        // Save user session in localStorage (Basic Auth)
+        // Save user session in localStorage
         localStorage.setItem('jc-user', JSON.stringify(data.user));
         // Redirect to feed
-        router.push('/feed');
+        window.location.href = '/feed';
       } else {
         setError(data.error || 'Authentication failed');
       }
@@ -60,21 +64,18 @@ export default function LoginPage() {
       >
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <img src="/logo.png" alt="JayConnect Logo" style={{ width: '54px', height: '54px', borderRadius: '12px', objectFit: 'cover', margin: '0 auto 16px auto', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }} />
-          <h1 style={{ fontSize: '1.8rem', fontWeight: 700, margin: '0 0 8px 0' }}>
-            {isForgotPassword ? 'Reset Password' : 'Welcome to JayConnect'}
-          </h1>
+          <h1 style={{ fontSize: '1.8rem', fontWeight: 700, margin: '0 0 8px 0' }}>Welcome Back</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0 }}>
-            {isForgotPassword ? 'Enter your e-Number and your new password.' : 
-             (isRegistering ? 'Register your Elmhurst Student account.' : 'Sign in using your Elmhurst e-Number.')}
+            Sign in to your Elmhurst account
           </p>
         </div>
 
-        <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>Student ID (e-Number)</label>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>E-Number</label>
             <input 
               type="text" 
-              placeholder="e.g. e12345678"
+              placeholder="e0805693"
               value={eNumber}
               onChange={e => setENumber(e.target.value)}
               style={{
@@ -85,7 +86,8 @@ export default function LoginPage() {
                 background: 'var(--bg-surface-2)',
                 color: 'var(--text-primary)',
                 fontSize: '0.95rem',
-                outline: 'none'
+                outline: 'none',
+                textTransform: 'lowercase'
               }}
               required
             />
@@ -112,29 +114,6 @@ export default function LoginPage() {
             />
           </div>
 
-          {isRegistering && (
-            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>Major / Field of Study</label>
-              <input 
-                type="text" 
-                placeholder="e.g. Data Science"
-                value={major}
-                onChange={e => setMajor(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  borderRadius: 8,
-                  border: '1px solid var(--border-color)',
-                  background: 'var(--bg-surface-2)',
-                  color: 'var(--text-primary)',
-                  fontSize: '0.95rem',
-                  outline: 'none'
-                }}
-                required={isRegistering}
-              />
-            </motion.div>
-          )}
-
           {error && (
             <div style={{ padding: 12, borderRadius: 8, background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#ef4444', fontSize: '0.85rem', textAlign: 'center' }}>
               {error}
@@ -147,42 +126,22 @@ export default function LoginPage() {
             disabled={loading}
             style={{ padding: '14px', width: '100%', justifyContent: 'center', fontSize: '1rem', marginTop: 8 }}
           >
-            {loading ? 'Processing...' : (isForgotPassword ? 'Reset Password' : (isRegistering ? 'Register Account' : 'Sign In'))}
+            {loading ? 'Signing In...' : 'Sign In'}
           </button>
         </form>
 
         <div style={{ marginTop: 24, textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-          {isForgotPassword ? (
-            <>
-              Remember your password? 
-              <button 
-                onClick={() => { setIsForgotPassword(false); setError(''); }}
-                style={{ background: 'none', border: 'none', color: 'var(--blue)', fontWeight: 600, marginLeft: 6, cursor: 'pointer', padding: 0 }}
-              >
-                Sign In
-              </button>
-            </>
-          ) : (
-            <>
-              <div style={{ marginBottom: '12px' }}>
-                <button 
-                  onClick={() => { setIsForgotPassword(true); setIsRegistering(false); setError(''); }}
-                  style={{ background: 'none', border: 'none', color: 'var(--blue)', fontWeight: 600, cursor: 'pointer', padding: 0 }}
-                >
-                  Forgot Password?
-                </button>
-              </div>
-              <div>
-                {isRegistering ? 'Already have an account?' : 'New to JayConnect?'}
-                <button 
-                  onClick={() => { setIsRegistering(!isRegistering); setError(''); }}
-                  style={{ background: 'none', border: 'none', color: 'var(--blue)', fontWeight: 600, marginLeft: 6, cursor: 'pointer', padding: 0 }}
-                >
-                  {isRegistering ? 'Sign In here' : 'Register here'}
-                </button>
-              </div>
-            </>
-          )}
+          <div style={{ marginBottom: '12px' }}>
+            <a href="/reset-password" style={{ color: 'var(--blue)', fontWeight: 600, textDecoration: 'none' }}>
+              Forgot Password?
+            </a>
+          </div>
+          <div>
+            New to JayConnect?
+            <a href="/register" style={{ color: 'var(--blue)', fontWeight: 600, marginLeft: 6, textDecoration: 'none' }}>
+              Create Account
+            </a>
+          </div>
         </div>
 
       </motion.div>

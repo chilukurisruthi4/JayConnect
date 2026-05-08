@@ -6,23 +6,37 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type');
+    const majorsParam = searchParams.get('majors') || searchParams.get('major');
 
     let posts;
     if (type === 'project') {
       posts = await prisma.project.findMany({
         include: {
           user: {
-            select: { displayName: true, avatarUrl: true }
+            select: { displayName: true, avatarUrl: true, major: true }
           }
         },
         orderBy: { createdAt: 'desc' }
       });
+      
+      // Filter by major if provided
+      if (majorsParam) {
+        posts = posts.filter(p => p.user?.major === majorsParam);
+      }
     } else {
       const userId = searchParams.get('userId');
+      
+      // Build where clause for filtering by author's major
+      const whereClause = {};
+      if (majorsParam) {
+        whereClause.author = { major: majorsParam };
+      }
+      
       posts = await prisma.post.findMany({
+        where: whereClause,
         include: {
           author: {
-            select: { displayName: true, avatarUrl: true }
+            select: { displayName: true, avatarUrl: true, adUsername: true, bio: true, major: true }
           },
           ...(userId ? { likes: { where: { userId } } } : {}),
           _count: {

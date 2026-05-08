@@ -212,8 +212,23 @@ export default function ProfilePage() {
                     <div className="profile-ava">{initials}</div>
                   )}
                   {editMode && (
-                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
-                      <span style={{ color: '#fff', fontSize: '0.85rem', fontWeight: 700 }}>EDIT</span>
+                    <div style={{ 
+                      position: 'absolute', 
+                      top: 0, 
+                      left: 0, 
+                      right: 0, 
+                      bottom: 0, 
+                      background: 'rgba(0,0,0,0.5)', 
+                      borderRadius: '50%', 
+                      display: 'flex', 
+                      flexDirection: 'column',
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      zIndex: 10,
+                      transition: 'all 0.2s'
+                    }}>
+                      <span style={{ fontSize: '2.5rem' }}>📷</span>
+                      <span style={{ color: '#fff', fontSize: '0.75rem', fontWeight: 700, marginTop: 4 }}>EDIT</span>
                     </div>
                   )}
                 </div>

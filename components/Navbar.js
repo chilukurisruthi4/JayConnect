@@ -85,6 +85,7 @@ export default function Navbar({ user: initialUser }) {
  { href: '/events', label: 'Events', icon: '' },
  { href: '/messages', label: 'Messages', icon: '' },
  { href: '/profile', label: 'Profile', icon: '' },
+ { href: '/analytics', label: 'Analytics', icon: '' },
  { href: '/dashboard', label: 'Admin', icon: '' },
  ];
 

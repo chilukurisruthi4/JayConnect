@@ -2,6 +2,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../../components/Navbar';
+import EmptyState from '../../components/EmptyState';
+import ErrorMessage from '../../components/ErrorMessage';
 
 const INITIAL_POSTS = [];
 
@@ -21,6 +23,106 @@ export default function FeedPage() {
  const [localUser, setLocalUser] = useState(null);
  const [posts, setPosts] = useState(INITIAL_POSTS);
  const [activeFilter, setActiveFilter] = useState('All');
+ const [selectedMajor, setSelectedMajor] = useState('All');
+ const [error, setError] = useState(null);
+ const [loading, setLoading] = useState(true);
+ const MAJORS = ['All', 'CIT', 'Business', 'Psychology', 'Biology', 'Nursing', 'Engineering'];
+
+ const fetchPosts = async () => {
+   setLoading(true);
+   setError(null);
+   try {
+     const params = new URLSearchParams(window.location.search);
+     const majorsParam = params.get('majors') || params.get('major');
+     
+     let url = majorsParam ? `/api/posts?majors=${encodeURIComponent(majorsParam)}` : '/api/posts';
+     let pUrl = majorsParam ? `/api/posts?type=project&majors=${encodeURIComponent(majorsParam)}` : `/api/posts?type=project`;
+     
+     const storedAuth = localStorage.getItem('jc-user');
+     if (storedAuth) {
+       const authObj = JSON.parse(storedAuth);
+       url += (url.includes('?') ? '&' : '?') + `userId=${authObj.id}`;
+     }
+     
+     const [res, pRes] = await Promise.all([
+       fetch(url, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } }),
+       fetch(pUrl, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } })
+     ]);
+     
+     const data = await res.json();
+     const pData = await pRes.json();
+     
+     let allItems = [];
+     const typeMap = {
+       idea: { typeBadge: ' Idea', typeColor: 'rgba(245,166,35,0.15)', typeTextColor: '#fbbf24' },
+       project: { typeBadge: ' Project', typeColor: 'rgba(139,92,246,0.2)', typeTextColor: '#a78bfa' },
+       research: { typeBadge: ' Research', typeColor: 'rgba(6,95,70,0.3)', typeTextColor: '#34d399' },
+       showcase: { typeBadge: '🚀 Showcase', typeColor: 'rgba(236,72,153,0.15)', typeTextColor: '#f472b6' },
+     };
+
+     if (data.success && data.posts) {
+       const mappedPosts = data.posts.map(post => {
+         let postType = (post.title && ['idea', 'research', 'showcase'].includes(post.title.toLowerCase())) ? post.title.toLowerCase() : 'idea';
+         return {
+           id: post.id,
+           authorId: post.authorId,
+           name: post.author?.displayName || post.author?.adUsername || 'Student Match',
+           initials: (post.author?.displayName || 'U').split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase(),
+           color: 'linear-gradient(135deg,#1565c0,#7c3aed)',
+           role: post.author?.bio || 'Student · Elmhurst Network',
+           time: new Date(post.createdAt).toLocaleDateString(),
+           type: postType,
+           ...typeMap[postType],
+           content: post.content,
+           tags: post.tags || [],
+           likes: post._count?.likes || 0,
+           comments: post._count?.comments || 0,
+           interested: 0,
+           isLiked: post.isLiked || false,
+           isInterested: false,
+           createdAt: new Date(post.createdAt).getTime()
+         };
+       });
+       allItems = [...allItems, ...mappedPosts];
+     }
+     
+     if (pData.success && pData.posts) {
+       const mappedProjects = pData.posts.map(proj => ({
+           id: proj.id,
+           authorId: proj.user?.id || proj.userId || 'unknown',
+           name: proj.user?.displayName || 'Student',
+           initials: (proj.user?.displayName || 'U').split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase(),
+           color: 'linear-gradient(135deg,#1565c0,#7c3aed)',
+           role: proj.user?.bio || 'Student · Elmhurst Network',
+           time: new Date(proj.createdAt).toLocaleDateString(),
+           type: 'project',
+           ...typeMap['project'],
+           content: proj.description || proj.content,
+           tags: [],
+           likes: 0,
+           comments: 0,
+           interested: 0,
+           isLiked: false,
+           isInterested: false,
+           createdAt: new Date(proj.createdAt).getTime()
+       }));
+       allItems = [...allItems, ...mappedProjects];
+     }
+     
+     allItems.sort((a, b) => b.createdAt - a.createdAt);
+     
+     if (allItems.length > 0) {
+       setPosts(allItems);
+     } else {
+       setPosts([]);
+     }
+   } catch (err) {
+     console.error("Failed to load DB posts:", err);
+     setError('Failed to load posts. Please check your connection.');
+   } finally {
+     setLoading(false);
+   }
+ };
 
   useEffect(() => {
     try {
@@ -29,55 +131,6 @@ export default function FeedPage() {
         setLocalUser(JSON.parse(stored));
       }
     } catch(e) {}
-    async function fetchPosts() {
-      try {
-        const params = new URLSearchParams(window.location.search);
-        const majorsParam = params.get('majors') || params.get('major');
-        
-        let url = majorsParam ? `/api/posts?majors=${encodeURIComponent(majorsParam)}` : '/api/posts';
-        const storedAuth = localStorage.getItem('jc-user');
-        if (storedAuth) {
-          const authObj = JSON.parse(storedAuth);
-          url += (url.includes('?') ? '&' : '?') + `userId=${authObj.id}`;
-        }
-        
-        const res = await fetch(url, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
-        const data = await res.json();
-        
-        if (data.success && data.posts && data.posts.length > 0) {
-          const typeMap = {
-            idea: { typeBadge: ' Idea', typeColor: 'rgba(245,166,35,0.15)', typeTextColor: '#fbbf24' },
-            project: { typeBadge: ' Project', typeColor: 'rgba(139,92,246,0.2)', typeTextColor: '#a78bfa' },
-            research: { typeBadge: ' Research', typeColor: 'rgba(6,95,70,0.3)', typeTextColor: '#34d399' },
-            showcase: { typeBadge: '🚀 Showcase', typeColor: 'rgba(236,72,153,0.15)', typeTextColor: '#f472b6' },
-          };
-
-          const formatted = data.posts.map(post => ({
-            id: post.id,
-            authorId: post.authorId,
-            name: post.author?.displayName || post.author?.adUsername || 'Student Match',
-            initials: (post.author?.displayName || 'U').split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase(),
-            color: 'linear-gradient(135deg,#1565c0,#7c3aed)',
-            role: post.author?.bio || 'Student · Elmhurst Network',
-            time: new Date(post.createdAt).toLocaleDateString(),
-            type: 'idea',
-            ...typeMap['idea'],
-            content: post.content,
-            tags: post.tags || [],
-            likes: post._count?.likes || 0,
-            comments: post._count?.comments || 0,
-            interested: 0,
-            isLiked: post.isLiked || false,
-            isInterested: false,
-          }));
-          setPosts(formatted);
-        } else {
-            // Keep INITIAL_POSTS if no actual mock DB data returns
-        }
-      } catch (err) {
-        console.error("Failed to load DB posts:", err);
-      }
-    }
     
     if (typeof window !== 'undefined') {
       fetchPosts();
@@ -236,7 +289,7 @@ export default function FeedPage() {
       const endpoint = isProjectForm ? '/api/projects' : '/api/posts';
       const payload = isProjectForm 
          ? { title: 'Collaboration Blueprint', description: newPost, userId: localUser.id }
-         : { content: newPost, title: 'Feed Update', userId: localUser.id };
+         : { content: newPost, title: newPostType, userId: localUser.id };
 
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -375,6 +428,36 @@ export default function FeedPage() {
  </div>
  </div>
 
+ {/* Major Filter */}
+ <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16, padding: '12px 16px', background: 'var(--bg-surface)', borderRadius: 12, border: '1px solid var(--border-color)' }}>
+   <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Filter by Major:</span>
+   <select 
+     value={selectedMajor}
+     onChange={(e) => {
+       setSelectedMajor(e.target.value);
+       if (e.target.value === 'All') {
+         window.history.pushState({}, '', '/feed');
+         window.location.reload();
+       } else {
+         window.location.href = `/feed?majors=${e.target.value}`;
+       }
+     }}
+     style={{ 
+       padding: '8px 16px', 
+       borderRadius: 8, 
+       border: '1px solid var(--border-color)', 
+       background: 'var(--input-bg)', 
+       color: 'var(--text-primary)',
+       fontSize: '0.9rem',
+       cursor: 'pointer'
+     }}
+   >
+     {MAJORS.map(m => (
+       <option key={m} value={m}>{m}</option>
+     ))}
+   </select>
+ </div>
+
  {/* Filters */}
  <div className="filter-bar">
  {FILTERS.map(f => (
@@ -389,9 +472,37 @@ export default function FeedPage() {
  </div>
 
  {/* Posts */}
- <AnimatePresence>
- {filtered.map(p => (
- <motion.div 
+ {error ? (
+  <ErrorMessage 
+    message={error} 
+    onRetry={() => {
+      setError(null);
+      fetchPosts();
+    }}
+  />
+) : loading ? (
+  <div style={{ textAlign: 'center', padding: '40px' }}>
+    <div style={{ 
+      width: 40, 
+      height: 40, 
+      border: '3px solid rgba(255,255,255,0.1)',
+      borderTop: '3px solid #1565c0',
+      borderRadius: '50%',
+      animation: 'spin 1s linear infinite',
+      margin: '0 auto'
+    }} />
+    <p style={{ marginTop: 16, color: 'var(--text-secondary)' }}>Loading posts...</p>
+  </div>
+) : filtered.length === 0 ? (
+  <EmptyState 
+    icon="✨"
+    title="No posts yet"
+    message={activeFilter !== 'All' ? `No ${activeFilter.toLowerCase()} posts found. Try a different filter!` : "Be the first to share something with the community!"}
+  />
+) : (
+  <AnimatePresence>
+  {filtered.map(p => (
+  <motion.div 
    className="post-card" 
    key={p.id}
    layout
@@ -491,26 +602,54 @@ export default function FeedPage() {
  placeholder="Type your comment..."
  value={commentText}
  onChange={(e) => setCommentText(e.target.value)}
- onKeyDown={(e) => {
- if (e.key === 'Enter' && commentText.trim()) {
- setPosts(ps => ps.map(post => post.id === p.id ? { ...post, comments: post.comments + 1 } : post));
- setCommentText('');
- setActiveCommentPostId(null);
- showToast(' Comment published!');
- }
- }}
+ onKeyDown={async (e) => {
+  if (e.key === 'Enter' && commentText.trim()) {
+    try {
+      const res = await fetch(`/api/posts/${p.id}/comment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          content: commentText, 
+          authorId: localUser.id 
+        })
+      });
+      if (res.ok) {
+        setPosts(ps => ps.map(post => post.id === p.id ? { ...post, comments: post.comments + 1 } : post));
+        setCommentText('');
+        setActiveCommentPostId(null);
+        showToast('💬 Comment published!');
+      }
+    } catch (err) {
+      showToast('Failed to post comment');
+    }
+  }
+}}
  autoFocus
  />
  <button 
  className="btn-primary" 
  style={{ padding: '0 20px', borderRadius: '20px', opacity: commentText.trim() ? 1 : 0.5, cursor: commentText.trim() ? 'pointer' : 'not-allowed', fontSize: '0.9rem' }}
- onClick={() => {
- if (!commentText.trim()) return;
- setPosts(ps => ps.map(post => post.id === p.id ? { ...post, comments: post.comments + 1 } : post));
- setCommentText('');
- setActiveCommentPostId(null);
- showToast(' Comment published!');
- }}
+ onClick={async () => {
+  if (!commentText.trim()) return;
+  try {
+    const res = await fetch(`/api/posts/${p.id}/comment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        content: commentText, 
+        authorId: localUser.id 
+      })
+    });
+    if (res.ok) {
+      setPosts(ps => ps.map(post => post.id === p.id ? { ...post, comments: post.comments + 1 } : post));
+      setCommentText('');
+      setActiveCommentPostId(null);
+      showToast('💬 Comment published!');
+    }
+  } catch (err) {
+    showToast('Failed to post comment');
+  }
+}}
  >
  Post
  </button>
@@ -521,6 +660,7 @@ export default function FeedPage() {
   </motion.div>
   ))}
   </AnimatePresence>
+)}
   </main>
 
   {/* Share Modal */}
