@@ -1,6 +1,6 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import prisma from "@/lib/prisma"; // Connects to the DB (VM-4)
+import { prisma } from "../../../lib/prisma"; // Connects to the DB
 
 // This configuration fulfills "Note 1" of your MCIT project layout.
 // It is designed to act as the authentication bridge between the Next.js app
