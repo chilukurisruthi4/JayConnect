@@ -86,7 +86,6 @@ export default function Navbar({ user: initialUser }) {
  { href: '/messages', label: 'Messages', icon: '' },
  { href: '/profile', label: 'Profile', icon: '' },
  { href: '/analytics', label: 'Analytics', icon: '' },
- { href: '/dashboard', label: 'Admin', icon: '' },
  ];
 
  const isDark = theme === 'dark';
