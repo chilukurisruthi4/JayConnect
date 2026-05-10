@@ -27,19 +27,42 @@ export default function NetworkPage() {
        console.log('Current user:', user);
        console.log('Current user ID:', user.id);
 
+       // Fetch all users
        const usersRes = await fetch('/api/users', { headers: { 'Cache-Control': 'no-store' } });
        const usersData = await usersRes.json();
 
+       // Fetch current user's connections
+       const connectionsRes = await fetch(`/api/connections?userId=${user.id}`, { headers: { 'Cache-Control': 'no-store' } });
+       const connectionsData = await connectionsRes.json();
+
        console.log('All users from API:', usersData.users);
+       console.log('User connections:', connectionsData);
 
        if (usersData.success && usersData.users.length > 0) {
+         // Build connection status map
+         const connectionMap = {};
+         if (connectionsData.success && connectionsData.connections) {
+           connectionsData.connections.forEach(conn => {
+             // Check if current user is follower or following
+             if (conn.followerId === user.id) {
+               connectionMap[conn.followingId] = conn.status;
+             } else if (conn.followingId === user.id) {
+               connectionMap[conn.followerId] = conn.status;
+             }
+           });
+         }
+
+         console.log('Connection map:', connectionMap);
+
          const filtered = usersData.users.filter(u => {
            const isCurrentUser = u.id === user.id;
-           console.log(`User ${u.displayName} (ID: ${u.id}) - Current user? ${isCurrentUser}`);
-           return !isCurrentUser; // Exclude current user
+           const isConnected = connectionMap[u.id] === 'ACCEPTED';
+           console.log(`User ${u.displayName} (ID: ${u.id}) - Current user? ${isCurrentUser}, Connected? ${isConnected}`);
+           // Exclude current user AND already connected users
+           return !isCurrentUser && !isConnected;
          });
            
-         console.log('Filtered users (should exclude you):', filtered);
+         console.log('Filtered users (should exclude you and connected users):', filtered);
 
          const formattedUsers = filtered.map(u => ({
            id: u.id,
@@ -47,7 +70,7 @@ export default function NetworkPage() {
            role: u.major || 'Undecided Major',
            type: u.role?.includes('Professor') ? 'Faculty' : 'Student',
            mutuals: Math.floor(Math.random() * 20),
-           connectionStatus: 'NONE',
+           connectionStatus: connectionMap[u.id] || 'NONE', // Use actual status from database
            avatar: (u.displayName || u.adUsername || 'U').split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase()
          }));
          
