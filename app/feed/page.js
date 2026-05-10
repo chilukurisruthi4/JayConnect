@@ -39,18 +39,24 @@ export default function FeedPage() {
      let pUrl = majorsParam ? `/api/posts?type=project&majors=${encodeURIComponent(majorsParam)}` : `/api/posts?type=project`;
      
      const storedAuth = localStorage.getItem('jc-user');
+     let userId = null;
      if (storedAuth) {
        const authObj = JSON.parse(storedAuth);
-       url += (url.includes('?') ? '&' : '?') + `userId=${authObj.id}`;
+       userId = authObj.id;
+       url += (url.includes('?') ? '&' : '?') + `userId=${userId}`;
      }
      
-     const [res, pRes] = await Promise.all([
+     const fetchPromises = [
        fetch(url, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } }),
        fetch(pUrl, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } })
-     ]);
+     ];
+     if (userId) fetchPromises.push(fetch(`/api/interests?userId=${userId}`));
+     const [res, pRes, interestsRes] = await Promise.all(fetchPromises);
      
      const data = await res.json();
      const pData = await pRes.json();
+     const interestsData = interestsRes ? await interestsRes.json() : { interests: [] };
+     const interestedPostIds = new Set((interestsData.interests || []).map(i => i.postId).filter(Boolean));
      
      let allItems = [];
      const typeMap = {
@@ -79,7 +85,7 @@ export default function FeedPage() {
            comments: post._count?.comments || 0,
            interested: 0,
            isLiked: post.isLiked || false,
-           isInterested: false,
+           isInterested: interestedPostIds.has(post.id),
            createdAt: new Date(post.createdAt).getTime()
          };
        });
@@ -103,7 +109,7 @@ export default function FeedPage() {
            comments: 0,
            interested: 0,
            isLiked: false,
-           isInterested: false,
+           isInterested: interestedPostIds.has(proj.id),
            createdAt: new Date(proj.createdAt).getTime()
        }));
        allItems = [...allItems, ...mappedProjects];
