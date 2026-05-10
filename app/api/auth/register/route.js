@@ -3,14 +3,28 @@ import { prisma } from '../../../../lib/prisma';
 
 export async function POST(request) {
   try {
-    const { eNumber, email, password, displayName, major } = await request.json();
+    const body = await request.json();
+    const { eNumber, email, password, displayName, major } = body;
+
+    console.log('Register attempt:', { eNumber, email, displayName, major });
+
+    // Validate required fields
+    if (!eNumber || !email || !password) {
+      return NextResponse.json({
+        success: false,
+        error: 'E-Number, email, and password are required'
+      }, { status: 400 });
+    }
+
+    // Normalize eNumber to uppercase for consistency
+    const normalizedENumber = eNumber.toUpperCase();
 
     // Check if user already exists
     const existing = await prisma.user.findFirst({
       where: {
         OR: [
-          { eNumber: eNumber },
-          { email: email }
+          { eNumber: normalizedENumber },
+          { email: email.toLowerCase() }
         ]
       }
     });
@@ -25,13 +39,15 @@ export async function POST(request) {
     // Create user
     const user = await prisma.user.create({
       data: {
-        eNumber,
-        email,
-        password, // In production, you should hash this!
+        eNumber: normalizedENumber,
+        email: email.toLowerCase(),
+        password,
         displayName,
         major
       }
     });
+
+    console.log('User created successfully:', user.id);
 
     return NextResponse.json({ 
       success: true, 
@@ -43,11 +59,21 @@ export async function POST(request) {
         major: user.major
       }
     }, { status: 201 });
+
   } catch (error) {
-    console.error('Registration error:', error);
+    console.error('Registration error full details:', error.message, error.code);
+    
+    // Return a more specific error message
+    let errorMessage = 'Failed to create account';
+    if (error.code === 'P2002') {
+      errorMessage = 'An account with this E-Number or email already exists';
+    } else if (error.message?.includes('connect') || error.message?.includes('ECONNREFUSED')) {
+      errorMessage = 'Database connection error. Please try again shortly.';
+    }
+
     return NextResponse.json({ 
       success: false, 
-      error: 'Failed to create account' 
+      error: errorMessage
     }, { status: 500 });
   }
 }
