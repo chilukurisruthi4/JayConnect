@@ -61,7 +61,7 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const data = await request.json();
-    const { content, title, userId } = data;
+    const { content, title, userId, imageUrl } = data;
 
     if (!content || !userId) {
       return NextResponse.json({ success: false, error: 'Content and userId are required' }, { status: 400 });
@@ -71,7 +71,8 @@ export async function POST(request) {
       data: {
         title: title || 'New Post',
         content,
-        authorId: userId
+        authorId: userId,
+        imageUrl: imageUrl || null
       },
       include: {
         author: { select: { displayName: true, avatarUrl: true } }
