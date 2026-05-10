@@ -85,6 +85,7 @@ export default function FeedPage() {
            comments: post._count?.comments || 0,
            interested: 0,
            isLiked: post.isLiked || false,
+           image: post.imageUrl || null,
            isInterested: interestedPostIds.has(post.id),
            createdAt: new Date(post.createdAt).getTime()
          };
@@ -293,9 +294,9 @@ export default function FeedPage() {
       
       const isProjectForm = newPostType === 'project';
       const endpoint = isProjectForm ? '/api/projects' : '/api/posts';
-      const payload = isProjectForm 
-         ? { title: 'Collaboration Blueprint', description: newPost, userId: localUser.id }
-         : { content: newPost, title: newPostType, userId: localUser.id };
+       const payload = isProjectForm 
+         ? { title: 'Collaboration Blueprint', description: newPost, userId: localUser.id, imageUrl: imagePreview }
+         : { content: newPost, title: newPostType, userId: localUser.id, imageUrl: imagePreview };
 
       const res = await fetch(endpoint, {
         method: 'POST',
