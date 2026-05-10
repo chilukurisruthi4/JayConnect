@@ -12,12 +12,19 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: 'e-Number and Password are required' }, { status: 400 });
     }
 
-    // Find user by eNumber
-    console.log('Looking for user with eNumber:', eNumber);
+    // Normalize eNumber - try both uppercase and lowercase
+    const normalizedENumber = eNumber.toUpperCase();
+    console.log('Looking for user with eNumber:', normalizedENumber);
     let user = await prisma.user.findFirst({
-      where: { eNumber }
+      where: {
+        OR: [
+          { eNumber: normalizedENumber },
+          { eNumber: eNumber.toLowerCase() },
+          { eNumber: eNumber }
+        ]
+      }
     });
-    console.log('User found:', user ? 'YES' : 'NO');
+    console.log('User found:', user ? `YES - ${user.displayName}` : 'NO');
 
     // LOGIN
     if (action === 'login') {
@@ -27,7 +34,16 @@ export async function POST(request) {
       if (user.password !== password) {
         return NextResponse.json({ success: false, error: 'Incorrect password.' }, { status: 401 });
       }
-      return NextResponse.json({ success: true, user });
+      return NextResponse.json({ success: true, user: {
+        id: user.id,
+        eNumber: user.eNumber,
+        email: user.email,
+        displayName: user.displayName,
+        adUsername: user.adUsername,
+        major: user.major,
+        avatarUrl: user.avatarUrl,
+        bio: user.bio
+      }});
     } 
     
     // RESET PASSWORD
