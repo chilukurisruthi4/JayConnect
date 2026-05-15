@@ -2027,6 +2027,33 @@ select {
   color: #8a5800;
 }
 
+.mobile-trending-topics {
+  display: none;
+  overflow-x: auto;
+  gap: 12px;
+  padding: 10px 20px;
+  margin-bottom: 16px;
+  scrollbar-width: none;
+}
+.mobile-trending-topics::-webkit-scrollbar {
+  display: none;
+}
+.mobile-trending-topics .topic-pill {
+  flex-shrink: 0;
+  cursor: pointer;
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.2s;
+}
+.mobile-trending-topics .topic-pill:hover {
+  background: var(--bg-surface-3);
+}
+
 /* ── Responsive & Mobile ──────────────────────────────────── */
 @media (max-width: 1024px) {
   .feed-layout {
@@ -2053,6 +2080,10 @@ select {
 
   .hackathon-banner {
     flex-direction: column;
+  }
+
+  .mobile-trending-topics {
+    display: flex;
   }
 }
 

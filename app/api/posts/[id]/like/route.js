@@ -31,6 +31,30 @@ export async function POST(request, { params }) {
           userId: userId
         }
       });
+
+      // Fetch post and user to send notification
+      const post = await prisma.post.findUnique({
+        where: { id: id },
+        select: { authorId: true, content: true }
+      });
+      const liker = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { displayName: true, adUsername: true }
+      });
+
+      if (post && liker && post.authorId !== userId) {
+        const likerName = liker.displayName || liker.adUsername || 'Someone';
+        const postSnippet = post.content ? `"${post.content.substring(0, 30)}${post.content.length > 30 ? '...' : ''}"` : 'your post';
+        await prisma.notification.create({
+          data: {
+            recipientId: post.authorId,
+            senderId: userId,
+            type: 'LIKE',
+            message: `${likerName} liked ${postSnippet}`,
+            postId: id
+          }
+        });
+      }
     } else if (action === 'unlike') {
       await prisma.like.deleteMany({ 
         where: { 

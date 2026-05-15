@@ -26,6 +26,7 @@ export default function FeedPage() {
  const [selectedMajor, setSelectedMajor] = useState('All');
  const [error, setError] = useState(null);
  const [loading, setLoading] = useState(true);
+ const [searchQuery, setSearchQuery] = useState('');
  const MAJORS = ['All', 'CIT', 'Business', 'Psychology', 'Biology', 'Nursing', 'Engineering'];
 
  const fetchPosts = async () => {
@@ -343,9 +344,17 @@ export default function FeedPage() {
     setIsPublishing(false);
   };
 
- const filtered = activeFilter === 'All'
+ const baseFiltered = activeFilter === 'All'
  ? posts
  : posts.filter(p => p.type === activeFilter.toLowerCase().replace('s', ''));
+
+ const filtered = searchQuery
+ ? baseFiltered.filter(p => 
+     (p.content && p.content.toLowerCase().includes(searchQuery.toLowerCase())) ||
+     (p.tags && p.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))) ||
+     (p.type && p.type.toLowerCase().includes(searchQuery.toLowerCase()))
+   )
+ : baseFiltered;
 
  return (
  <div className="page-shell">
@@ -369,7 +378,7 @@ export default function FeedPage() {
  <div className="sidebar-card">
  <div className="sidebar-title">Trending Topics</div>
  {TOPICS.map(t => (
- <div className="topic-pill" key={t.name}>
+ <div className="topic-pill" key={t.name} onClick={() => setSearchQuery(t.name)} style={{ cursor: 'pointer' }}>
  <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#3b82f6' }}>{t.name}</span>
  <span className="topic-pill-count" style={{ fontWeight: 600, fontSize: '0.85rem' }}>{t.count}</span>
  </div>
@@ -379,6 +388,21 @@ export default function FeedPage() {
 
  {/* Main Feed */}
  <main>
+ <div className="mobile-trending-topics">
+   {TOPICS.map(t => (
+     <div className="topic-pill" key={t.name} onClick={() => setSearchQuery(t.name)}>
+       <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#3b82f6' }}>{t.name}</span>
+     </div>
+   ))}
+ </div>
+ 
+ {searchQuery && (
+   <div style={{ marginBottom: 16, padding: '12px 16px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+     <span style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>Showing results for <strong>{searchQuery}</strong></span>
+     <button className="btn-ghost" style={{ padding: '4px 10px', fontSize: '0.8rem', color: '#3b82f6' }} onClick={() => setSearchQuery('')}>Clear Search</button>
+   </div>
+ )}
+
  {/* Composer */}
  <div className="composer">
  <div className="composer-row">
