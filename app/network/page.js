@@ -67,7 +67,7 @@ export default function NetworkPage() {
          const formattedUsers = filtered.map(u => ({
            id: u.id,
            name: u.displayName || u.adUsername || 'Student',
-           role: u.major || 'Undecided Major',
+           role: u.major || '',
            type: u.role?.includes('Professor') ? 'Faculty' : 'Student',
            mutuals: Math.floor(Math.random() * 20),
            connectionStatus: connectionMap[u.id] || 'NONE', // Use actual status from database

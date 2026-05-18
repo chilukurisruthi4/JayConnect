@@ -17,7 +17,7 @@ export async function GET() {
     ]);
 
     const usersByMajor = users.reduce((acc, u) => {
-      acc[u.major || 'Undecided'] = u._count;
+      if (u.major) acc[u.major] = u._count;
       return acc;
     }, {});
 
