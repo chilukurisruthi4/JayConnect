@@ -658,6 +658,7 @@ export default function FeedPage() {
                           onChange={(e) => setCommentText(e.target.value)}
                           onKeyDown={async (e) => {
                             if (e.key === 'Enter' && commentText.trim()) {
+                              if (!localUser?.id) { showToast('Please log in to comment'); return; }
                               try {
                                 const res = await fetch(`/api/posts/${p.id}/comment`, {
                                   method: 'POST',
@@ -672,6 +673,23 @@ export default function FeedPage() {
                                   setCommentText('');
                                   setActiveCommentPostId(null);
                                   showToast('💬 Comment published!');
+                                  // Notify post author
+                                  if (p.authorId && p.authorId !== localUser.id) {
+                                    fetch('/api/notifications', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({
+                                        recipientId: p.authorId,
+                                        senderId: localUser.id,
+                                        type: 'COMMENT',
+                                        message: `${localUser.displayName || localUser.adUsername || 'Someone'} commented on your post`,
+                                        postId: p.id
+                                      })
+                                    }).catch(() => {});
+                                  }
+                                } else {
+                                  const errData = await res.json();
+                                  showToast(errData.error || 'Failed to post comment');
                                 }
                               } catch (err) {
                                 showToast('Failed to post comment');
@@ -685,6 +703,7 @@ export default function FeedPage() {
                           style={{ padding: '0 20px', borderRadius: '20px', opacity: commentText.trim() ? 1 : 0.5, cursor: commentText.trim() ? 'pointer' : 'not-allowed', fontSize: '0.9rem' }}
                           onClick={async () => {
                             if (!commentText.trim()) return;
+                            if (!localUser?.id) { showToast('Please log in to comment'); return; }
                             try {
                               const res = await fetch(`/api/posts/${p.id}/comment`, {
                                 method: 'POST',
@@ -699,6 +718,23 @@ export default function FeedPage() {
                                 setCommentText('');
                                 setActiveCommentPostId(null);
                                 showToast('💬 Comment published!');
+                                // Notify post author
+                                if (p.authorId && p.authorId !== localUser.id) {
+                                  fetch('/api/notifications', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      recipientId: p.authorId,
+                                      senderId: localUser.id,
+                                      type: 'COMMENT',
+                                      message: `${localUser.displayName || localUser.adUsername || 'Someone'} commented on your post`,
+                                      postId: p.id
+                                    })
+                                  }).catch(() => {});
+                                }
+                              } else {
+                                const errData = await res.json();
+                                showToast(errData.error || 'Failed to post comment');
                               }
                             } catch (err) {
                               showToast('Failed to post comment');
