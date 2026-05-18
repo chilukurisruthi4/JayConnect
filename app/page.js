@@ -90,7 +90,6 @@
  { num: stats ? stats.totalUsers : '...', label: 'Students Connected' },
  { num: stats ? stats.totalPosts : '...', label: 'Posts & Ideas' },
  { num: stats ? stats.totalLikes : '...', label: 'Total Likes' },
- { num: stats ? Object.keys(stats.usersByMajor).length : '...', label: 'Disciplines' }
  ].map(s => (
  <div className="stat" key={s.label}>
  <div className="stat-num">{s.num}</div>
