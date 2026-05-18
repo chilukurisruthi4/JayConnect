@@ -1,9 +1,21 @@
  'use client';
- import { useState } from 'react';
+ import { useState, useEffect } from 'react';
  import Link from 'next/link';
 
  export default function LandingPage() {
  const [majorsSelected, setMajorsSelected] = useState(['CIT']);
+ const [stats, setStats] = useState(null);
+
+ useEffect(() => {
+   fetch('/api/analytics')
+     .then(res => res.json())
+     .then(data => {
+       if (data.success) {
+         setStats(data.stats);
+       }
+     })
+     .catch(err => console.error("Failed to load stats:", err));
+ }, []);
 
  const majors = [
    { code: 'CIT', label: 'Computer Info Tech' },
@@ -75,10 +87,10 @@
 
  <div className="hero-stats" style={{ marginTop: 48 }}>
  {[
- { num: '1,200+', label: 'Students Connected' },
- { num: '84', label: 'Active Projects' },
- { num: '340+', label: 'Resumes Built' },
- { num: '15+', label: 'Disciplines' }
+ { num: stats ? stats.totalUsers : '...', label: 'Students Connected' },
+ { num: stats ? stats.totalPosts : '...', label: 'Posts & Ideas' },
+ { num: stats ? stats.totalLikes : '...', label: 'Total Likes' },
+ { num: stats ? Object.keys(stats.usersByMajor).length : '...', label: 'Disciplines' }
  ].map(s => (
  <div className="stat" key={s.label}>
  <div className="stat-num">{s.num}</div>
