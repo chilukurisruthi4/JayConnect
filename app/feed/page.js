@@ -27,6 +27,7 @@ export default function FeedPage() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [userActivity, setUserActivity] = useState({ posts: '…', collaborations: '…', followers: '…' });
   const MAJORS = ['All', 'CIT', 'Business', 'Psychology', 'Biology', 'Nursing', 'Engineering'];
 
   const fetchPosts = async () => {
@@ -143,6 +144,28 @@ export default function FeedPage() {
     if (typeof window !== 'undefined') {
       fetchPosts();
     }
+
+    // Fetch real-time user activity stats
+    try {
+      const stored = localStorage.getItem('jc-user');
+      if (stored) {
+        const u = JSON.parse(stored);
+        if (u?.id) {
+          Promise.all([
+            fetch(`/api/posts?userId=${u.id}&authorId=${u.id}`),
+            fetch(`/api/connections?userId=${u.id}`)
+          ]).then(async ([postsRes, connRes]) => {
+            const postsData = await postsRes.json();
+            const connData = await connRes.json();
+            const myPostCount = (postsData.posts || []).filter(p => p.authorId === u.id).length;
+            const connections = connData.connections || [];
+            const followers = connections.filter(c => c.followingId === u.id && c.status === 'ACCEPTED').length;
+            const collaborations = connections.filter(c => c.status === 'ACCEPTED').length;
+            setUserActivity({ posts: myPostCount, collaborations, followers });
+          }).catch(() => {});
+        }
+      }
+    } catch(e) {}
   }, []);
   const [newPost, setNewPost] = useState('');
   const [newPostType, setNewPostType] = useState('idea');
@@ -750,9 +773,9 @@ export default function FeedPage() {
           <div className="sidebar-card">
             <div className="sidebar-title">Your Activity</div>
             {[
-              { label: 'Posts', val: '7' },
-              { label: 'Collaborations', val: '3' },
-              { label: 'Followers', val: '42' },
+              { label: 'Posts', val: userActivity.posts },
+              { label: 'Collaborations', val: userActivity.collaborations },
+              { label: 'Followers', val: userActivity.followers },
             ].map(a => (
               <div key={a.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '0.9rem' }}>
                 <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{a.label}</span>
